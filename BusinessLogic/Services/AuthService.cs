@@ -12,6 +12,8 @@ public class AuthService
     private readonly UserRepository _userRepository;
     private readonly UserMapper     _userMapper;
     private readonly PasswordHasher _passwordHasher;
+
+    private const string LoginErrorMessage = "Invalid username or password";
     
     public AuthService(UserRepository userRepository, UserMapper userMapper, PasswordHasher passwordHasher)
     {
@@ -22,25 +24,28 @@ public class AuthService
 
     public async Task<Response> RegisterAsync(RegisterDto registerDto)
     {
-        var registerResponse = Response.Ok();
+        Response registerResponse = new Response();
+        var      emailExists      = await _userRepository.ExistsByEmailAsync(registerDto.Email);
 
-        var emailExists    = await _userRepository.ExistsByEmailAsync(registerDto.Email);
-        var usernameExists = await _userRepository.ExistsByUsernameAsync(registerDto.Username);
-
-        if (emailExists)
+        if (!emailExists)
         {
-            registerResponse = Response.Fail($"user with email {registerDto.Email} already exists");
-        }
-        else if (usernameExists)
-        {
-            registerResponse = Response.Fail($"User with username {registerDto.Username} already exists");
-        }
-        else
-        {
-            var (hash, salt) = _passwordHasher.HashPassword(registerDto.Password);
-            User userToRegister = _userMapper.ToEntity(registerDto, hash, salt);
+            var usernameExists = await _userRepository.ExistsByUsernameAsync(registerDto.Username);
             
-            await _userRepository.AddAsync(userToRegister);
+            if (!usernameExists)
+            {
+                var (hash, salt) = _passwordHasher.HashPassword(registerDto.Password);
+                User userToRegister = _userMapper.ToEntity(registerDto, hash, salt);
+            
+                await _userRepository.AddAsync(userToRegister);
+            }
+            else
+            {
+                registerResponse.Fail("Username is already taken");
+            }
+        }
+        else 
+        {
+            registerResponse.Fail($"Email is already taken");
         }
 
         return registerResponse;
@@ -48,11 +53,9 @@ public class AuthService
 
     public async Task<Response<SessionUser>> LoginAsync(LoginDto loginDto)
     {
-        Response<SessionUser> loginResponse;
-
-        string message     = "Invalid username or password";
-        var    userToLogin = await _userRepository.GetByUniqueIdentifierAsync(loginDto.UniqueIdentifier);
-
+        var loginResponse = new Response<SessionUser>();
+        var userToLogin = await _userRepository.GetByUniqueIdentifierAsync(loginDto.UniqueIdentifier);
+        
         if (userToLogin is not null)
         {
             bool validPassword = _passwordHasher.VerifyPassword(loginDto.Password, userToLogin.PasswordHash, userToLogin.PasswordSalt);
@@ -60,20 +63,19 @@ public class AuthService
             if (validPassword)
             {
                 var sessionUser = _userMapper.ToSessionUser(userToLogin);
-                loginResponse = Response<SessionUser>.Ok(sessionUser);
+                loginResponse.Ok(sessionUser);
             }
             else
             {
-                loginResponse = Response<SessionUser>.Fail(message);
+                loginResponse.Fail(LoginErrorMessage);
             }
         }
         else
         {
-            loginResponse = Response<SessionUser>.Fail(message);
+            loginResponse.Fail(LoginErrorMessage);
         }
 
         return loginResponse;
     }
-    
     
 }

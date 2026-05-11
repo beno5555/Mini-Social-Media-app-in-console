@@ -16,8 +16,15 @@ public class Response
         
     }
 
-    public static Response Ok()                 => new Response(true);
-    public static Response Fail(string message) => new Response(false, message);
+    // public static Response Ok()                 => new Response(true);
+    // public static Response Fail(string message) => new Response(false, message);
+
+    public void Ok()  => Success = true; 
+    public virtual void Fail(string message)
+    {
+        Success = false;
+        Message = message;
+    }
 }
 public class Response<T> : Response
 {
@@ -35,6 +42,16 @@ public class Response<T> : Response
         
     }
 
-    public static     Response<T> Ok(T        data)    => new(true, null, data);
-    public new static Response<T> Fail(string message) => new(false, message, default);
+    public void Ok(T data)
+    {
+        Success = true;
+        Data = data;
+    }
+
+    public override void Fail(string message)
+    {
+        Success = false;
+        Message = message;
+        Data = default;
+    }
 }
