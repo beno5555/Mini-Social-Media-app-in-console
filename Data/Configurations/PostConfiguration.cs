@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.Identity.Client.RP;
 using social_media_console_app.Models;
 
-namespace social_media_console_app.Configurations;
+namespace social_media_console_app.Data.Configurations;
 
 public class PostConfiguration : IEntityTypeConfiguration<Post>
 {

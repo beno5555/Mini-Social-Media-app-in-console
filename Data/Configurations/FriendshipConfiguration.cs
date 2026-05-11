@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using social_media_console_app.Models;
 
-namespace social_media_console_app.Configurations;
+namespace social_media_console_app.Data.Configurations;
 
 public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
 {
