@@ -10,7 +10,7 @@ public class BaseRepository<T> where T : class
     protected readonly ApplicationDbContext _dbContext;
     protected readonly DbSet<T>             _dbSet;
 
-    public BaseRepository(ApplicationDbContext dbContext)
+    protected BaseRepository(ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
         _dbSet = _dbContext.Set<T>();
@@ -24,13 +24,19 @@ public class BaseRepository<T> where T : class
         return await _dbSet.ToListAsync();
     }
 
-    public async Task<List<T>> GetWhereAsync(
+    protected async Task<List<T>> GetWhereAsync(
         Expression<Func<T, bool>> predicate,
         int? pageNumber = null,
         int? pageSize = null,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         bool track = true)
     {
         var query = Query(track).Where(predicate);
+
+        if (orderBy is not null)
+        {
+            query = orderBy(query);
+        }
         
         if (pageNumber.HasValue && pageSize.HasValue)
         {
@@ -48,17 +54,17 @@ public class BaseRepository<T> where T : class
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task UpdateAsync(T entity)
-    {
-        _dbSet.Update(entity);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task UpdateRangeAsync(ICollection<T> entities)
-    {
-        _dbSet.UpdateRange(entities);
-        await _dbContext.SaveChangesAsync();
-    }
+//    public async Task UpdateAsync(T entity)
+//    {
+//        _dbSet.Update(entity);
+//        await _dbContext.SaveChangesAsync();
+//    }
+//
+//    public async Task UpdateRangeAsync(ICollection<T> entities)
+//    {
+//        _dbSet.UpdateRange(entities);
+//        await _dbContext.SaveChangesAsync();
+//    }
 
     public async Task DeleteAsync(T entity)
     {

@@ -49,7 +49,7 @@ public class MessageRepository : BaseEntityRepository<Message>
             message.IsRead = true;
         }
 
-        await UpdateRangeAsync(unreadMessages);
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>

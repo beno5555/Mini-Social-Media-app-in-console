@@ -1,0 +1,137 @@
+﻿using social_media_console_app.BusinessLogic.Dtos.PostDtos;
+using social_media_console_app.BusinessLogic.Mappers;
+using social_media_console_app.BusinessLogic.Responses;
+using social_media_console_app.Repositories;
+using Response = social_media_console_app.BusinessLogic.Responses.Response;
+
+namespace social_media_console_app.BusinessLogic.Services;
+
+public class PostService
+{
+    private readonly PostRepository       _postRepository;
+    private readonly FriendshipRepository _friendshipRepository;
+    private readonly UserRepository       _userRepository;
+    private readonly PostMapper           _postMapper;
+
+    public PostService(PostRepository postRepository, FriendshipRepository friendshipRepository, UserRepository userRepository, PostMapper postMapper)
+    {
+        _postRepository = postRepository;
+        _friendshipRepository = friendshipRepository;
+        _userRepository = userRepository;
+        _postMapper = postMapper;
+    }
+
+    /// <summary>
+    /// We do not check whether user with userId exists in the database or not, since the only source of userId is the userId of the currently logged-in user.
+    /// Proper id checking will be implemented if we decide to add admin role that would be able to upload/update the post under someone else's name
+    /// </summary>
+    /// <param name="createPostDto"></param>
+    /// <returns></returns>
+    public async Task<Response> UploadPost(CreatePostDto createPostDto)
+    {
+        var response = new Response();
+        
+        if (!string.IsNullOrWhiteSpace(createPostDto.PostTitle))
+        {
+            if (!string.IsNullOrWhiteSpace(createPostDto.PostContent))
+            {
+                var post = _postMapper.ToEntity(createPostDto);
+                await _postRepository.AddAsync(post);
+            }
+            else
+            {
+                response.Fail("Post content is required");
+            }
+        }
+        else
+        {
+            response.Fail("Post title is required");
+        }
+
+        return response;
+    }
+
+    public async Task<Response<List<DisplayPostDto>>> GetFeedAsync(int userId, int? pageNumber, int? pageSize)
+    {
+        var response = new Response<List<DisplayPostDto>>();
+
+        var userExists = await _userRepository.ExistsByIdAsync(userId);
+
+        if (userExists)
+        {
+            var friends = await _friendshipRepository.GetFriendsAsync(userId);
+
+            if (friends.Count > 0)
+            {
+                List<int> friendIds = friends.Select(friend =>
+                    friend.RequesterUserId == userId ? friend.AddresseeUserId : friend.RequesterUserId).ToList();
+                var posts    = await _postRepository.GetFeedAsync(friendIds, pageNumber, pageSize);
+
+                if (posts.Count > 0)
+                {
+                    var postDtos = posts.Select(_postMapper.ToDisplay).ToList();
+                    response.Ok(postDtos);
+                }
+                else
+                {
+                    response.Fail("You're all caught up");
+                }
+            }
+            else
+            {
+                response.Fail("You do not have any friends");
+            }
+        }
+        else
+        {
+            response.Fail("Invalid user id");
+        }
+
+        return response;
+    }
+
+    public async Task<Response<List<DisplayPostDto>>> GetByUserIdAsync(int userId, int? pageNumber, int? pageSize)
+    {
+        var response = new Response<List<DisplayPostDto>>();
+
+        bool userExists = await _userRepository.ExistsByIdAsync(userId);
+
+        if (userExists)
+        {
+            var posts = await _postRepository.GetByUserIdAsync(userId, pageNumber, pageSize);
+            
+            if (posts.Count > 0)
+            {
+                var postDtos = posts.Select(_postMapper.ToDisplay).ToList();
+                response.Ok(postDtos);
+            }
+            else
+            {
+                response.Fail("No posts.");
+            }
+        }
+        else
+        {
+            response.Fail("Invalid user id");
+        }
+        
+        return  response;
+    }
+
+    public async Task<Response> DeleteAsync(int postId)
+    {
+        var response = new Response();
+        var post     = await _postRepository.GetByIdAsync(postId);
+
+        if (post is not null)
+        {
+            await _postRepository.DeleteAsync(post);
+        }
+        else
+        {
+            response.Fail("Post not found");
+        }
+
+        return response;
+    }
+}

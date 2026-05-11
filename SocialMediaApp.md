@@ -29,7 +29,6 @@ Microsoft.Extensions.DependencyInjection
 - Comment on posts
 - Send, accept, and decline friend requests; view friends list
 - Send and view messages between users
-- (not sure if I am going to implement this) - Minimal role-based access: `Admin` and `User` roles, checked inline where needed
 
 ---
 
@@ -58,13 +57,13 @@ public abstract class BaseEntity
 }
 ```
 
-| Entity | Properties |
-|---|---|
-| User | Username, Email, PasswordHash, Bio |
-| Post | UserId, Content |
-| Comment | UserId, PostId, Content |
+| Entity     | Properties                                                                    |
+|------------|-------------------------------------------------------------------------------|
+| User       | Username, Email, PasswordHash, Bio                                            |
+| Post       | UserId, Content                                                               |
+| Comment    | UserId, PostId, Content                                                       |
 | Friendship | RequesterId, AddresseeId, Status (enum: Pending/Accepted/Declined), CreatedAt |
-| Message | SenderId, ReceiverId, Content, IsRead |
+| Message    | SenderId, ReceiverId, Content, IsRead                                         |
 
 ### Notes
 - `Friendship` does not inherit `BaseEntity` — its PK is `(RequesterId, AddresseeId)`. `CreatedAt` is declared manually.
@@ -95,8 +94,6 @@ Navigation properties are defined in configurations for relationship mapping. Th
     FriendshipStatus.cs
     Message.cs
     Role.cs
-/Common
-    Result.cs
 /Data
     AppDbContext.cs
     /Configurations
@@ -114,12 +111,36 @@ Navigation properties are defined in configurations for relationship mapping. Th
     CommentRepository.cs
     FriendshipRepository.cs
     MessageRepository.cs
-/Services
-    AuthService.cs
-    PostService.cs
-    CommentService.cs
-    FriendshipService.cs
-    MessageService.cs
+/BusinessLogic
+    /Dtos
+        /CommentDtos
+            CreateCommentDto.cs
+            DisplayCommentDto.cs
+        /MessageDtos
+            CreateMessageDto.cs
+            DisplayMessageDto.cs
+        /PostDtos
+            CreatePostDto.cs
+            DisplayPostDto.cs 
+        /UserDtos
+            DisplayUserDto.cs
+            LoginDto.cs
+            RegisterDto.cs
+            SessionUser.cs
+    /Mappers
+        CommentMapper.cs
+        MessageMapper.cs
+        PostMapper.cs
+        UserMapper.cs
+    /Responses
+        Response
+        Response<T> : Response
+    /Services
+        AuthService.cs
+        PostService.cs
+        CommentService.cs - should we have a separate one or include comment functionality to PostService since Comments are coupled to posts?
+        MessageService.cs
+        FriendshipService.cs - possibly also implement conversation functionality that MessageSerivice should have?
 /Menus - hesitant on this layout. have not decided yet. this is a placeholder
     MainMenu.cs
     AuthMenu.cs
@@ -145,7 +166,7 @@ The root base class. Provides data access methods usable by all repositories reg
 
 - `Query()` — `protected virtual IQueryable<T>`; override in specific repositories to apply default `Include` chains
 - `GetAllAsync()` — use only when the dataset is known to be small
-- `GetWhereAsync(predicate, page?, pageSize?)` — optional pagination; `Skip/Take` translated to SQL
+- `GetWhereAsync(predicate, page?, pageSize?, orderBy? track?)` — optional pagination; `Skip/Take` translated to SQL; optional ordering; manual ef tracking toggle set to true
 - `GetFirstAsync(predicate)` — returns `T?`
 - `AddAsync(T entity)`
 - `DeleteAsync(T entity)`
@@ -192,6 +213,7 @@ Extends `BaseEntityRepository<Post>`. `Query()` includes `User` and `Comments`.
 
 Methods:
 - `GetByUserIdAsync(int userId, int? page, int? pageSize)`
+- `GetFeedAsync(List<int> friendIds, int? page, int? pageSize)`
 
 ### CommentRepository
 
@@ -199,6 +221,7 @@ Extends `BaseEntityRepository<Comment>`. `Query()` includes `User` and `Post`.
 
 Methods:
 - `GetByPostIdAsync(int postId, int? page, int? pageSize)`
+- `GetByUserIdAsync(int userId, int? page, int? pageSize)`
 
 ### FriendshipRepository
 
@@ -229,26 +252,36 @@ Methods:
 Services return `Result<T>` or `Result` instead of raw data or booleans. Repositories return raw data or `null` — they have no business context to determine whether a null result is an error.
 
 ```csharp
-public class Result<T>
+public class Response 
 {
     public bool Success { get; }
+    public string? Message { get; }
+    
+    public void Ok() => Success = true;
+    public static Fail(string message) 
+    {
+        Success = false;
+        Message = message;
+    }
+}
+
+public class Result<T> : Result
+{
     public T? Data { get; }
-    public string? Error { get; }
-
-    private Result(bool success, T? data, string? error) { ... }
-
-    public static Result<T> Ok(T data) => new(true, data, null);
-    public static Result<T> Fail(string error) => new(false, default, error);
+        
+    public void Ok(T data) 
+    {
+        Success = true;
+        Data = data;
+    }
+    public override void Fail(string message) 
+    {
+        Success = false;
+        Message = message;
+        Data = default;
+    }
 }
 
-public class Result
-{
-    public bool Success { get; }
-    public string? Error { get; }
-
-    public static Result Ok() => new(true, null);
-    public static Result Fail(string error) => new(false, error);
-}
 ```
 
 Menus only display — no business logic. Services interpret repository results, apply business rules, and return `Result` or `Result<T>`.
@@ -296,10 +329,10 @@ mainMenu.Show();
 - `Friendship` and `Message` both have two FKs to `User` — configured with `OnDelete(DeleteBehavior.Restrict)` to avoid multiple cascade paths
 - Messages are standalone (not attached to Friendship) — a conversation is derived via query
 - `CreatedAt` defaults to `DateTime.UtcNow` in `BaseEntity`; declared manually on `Friendship`
-- Role checks (if decided to be implemented) would be inline (`if currentUser.Role != Role.Admin`), no permission infrastructure
 - Enums stored as strings for DB readability - currently no separate model for `FriendshipStatus`
 - `ExistsAsync` uses `AnyAsync` — translates to `SELECT 1 WHERE EXISTS`, more efficient than loading the entity
 - `ExecuteUpdateAsync` used in `MarkConversationAsReadAsync` — single SQL `UPDATE` without loading entities; bypasses change tracker
+- No early returns — a single `return` at the end of every method; branching is handled via `if/else`; `Result` is declared at the top of the method, mutated through the logic, and returned once at the end
 
 ---
 
@@ -312,7 +345,7 @@ mainMenu.Show();
 5. [x] First migration and seed data
 6. [x] `BaseRepository<T>` and `BaseEntityRepository<T>`
 7. [x] Specific repositories
-8. [ ] Result\<T\>
-9. [ ] Services
+8. [x] Response\<T\>
+9. [ ] Services - AuthService and PostService completed
 10. [ ] Menus
 11. [ ] Wire DI in `Program.cs`
