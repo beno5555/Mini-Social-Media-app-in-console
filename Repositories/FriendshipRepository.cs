@@ -68,4 +68,17 @@ public class FriendshipRepository : BaseRepository<Friendship>
             (friendship.RequesterUserId == userIdA || friendship.RequesterUserId == userIdB) &&
             (friendship.AddresseeUserId == userIdA || friendship.AddresseeUserId == userIdB));
     }
+
+    public async Task<bool> ExistsAsync(int userIdA, int userIdB)
+    {
+        return await ExistsAsync(friendship => 
+                (friendship.RequesterUserId == userIdA || friendship.RequesterUserId == userIdB) &&
+                (friendship.AddresseeUserId == userIdA || friendship.AddresseeUserId == userIdB));
+    }
+
+    public async Task UpdateStatusAsync(Friendship friendship, FriendshipStatus status)
+    {
+        friendship.FriendshipStatus = status;
+        await _dbContext.SaveChangesAsync();
+    }
 }

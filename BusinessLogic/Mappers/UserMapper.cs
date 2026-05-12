@@ -31,4 +31,13 @@ public class UserMapper
             Username = user.Username,
         };
     }
+
+    public Friendship ToFriendship(int requesterId, int addresseeId)
+    {
+        return new Friendship
+        {
+            RequesterUserId = requesterId,
+            AddresseeUserId = addresseeId,
+        };
+    }
 }
