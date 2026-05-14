@@ -2,5 +2,8 @@
 
 public class AuthenticatedMenu
 {
-    
+    public async Task Run()
+    {
+        throw new NotImplementedException();
+    }
 }
