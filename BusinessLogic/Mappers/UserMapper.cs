@@ -4,7 +4,7 @@ using social_media_console_app.Models;
 
 namespace social_media_console_app.BusinessLogic.Mappers;
 
-public class UserMapper
+public class UserMapper 
 {
     public User ToEntity(RegisterDto registerDto, string passwordHash, string passwordSalt)
     {
@@ -15,12 +15,13 @@ public class UserMapper
             PasswordHash = passwordHash,
             PasswordSalt = passwordSalt,
             Bio = registerDto.Bio,
+            DateOfBirth = registerDto.DateOfBirth
         };
     }
 
     public DisplayUserDto ToDisplay(User user)
     {
-        return null;
+        return new DisplayUserDto(user.Username, user.Bio, user.CreatedAt, user.DateOfBirth);
     }
 
     public SessionUser ToSessionUser(User user)

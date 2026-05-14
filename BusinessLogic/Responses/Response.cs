@@ -25,7 +25,7 @@ public class Response<T> : Response
         Data = data;
     }
 
-    public override void Fail(string message)
+    public override void Fail(string? message)
     {
         Success = false;
         Message = message;

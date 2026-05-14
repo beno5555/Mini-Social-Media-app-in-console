@@ -36,7 +36,7 @@ public class CommentService
         return response;
     }
 
-    public async Task<Response> DeletePostAsync(int commentId)
+    public async Task<Response> DeleteCommentAsync(int commentId)
     {
         var response = new Response();
 

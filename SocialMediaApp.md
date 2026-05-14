@@ -57,18 +57,24 @@ public abstract class BaseEntity
 }
 ```
 
-| Entity     | Properties                                                                    |
-|------------|-------------------------------------------------------------------------------|
-| User       | Username, Email, PasswordHash, Bio                                            |
-| Post       | UserId, Content                                                               |
-| Comment    | UserId, PostId, Content                                                       |
-| Friendship | RequesterId, AddresseeId, Status (enum: Pending/Accepted/Declined), CreatedAt |
-| Message    | SenderId, ReceiverId, Content, IsRead                                         |
+| Entity     | Properties                                                                                     |
+|------------|------------------------------------------------------------------------------------------------|
+| User       | Username, Email, PasswordHash, PasswordSalt, Bio, DateOfBirth                                 |
+| Post       | UserId, Content                                                                                |
+| Comment    | UserId, PostId, Content                                                                        |
+| Friendship | RequesterId, AddresseeId, Status (enum: Pending/Accepted/Declined), CreatedAt                 |
+| Message    | SenderId, ReceiverId, Content, IsRead                                                          |
 
 ### Notes
 - `Friendship` does not inherit `BaseEntity` — its PK is `(RequesterId, AddresseeId)`. `CreatedAt` is declared manually.
 - `Message.SentAt` is removed — `CreatedAt` from `BaseEntity` serves as the sent timestamp.
 - Enums (`FriendshipStatus`) are stored as strings in the database.
+- `User.DateOfBirth` is public. Validated at the database level via a check constraint and at the menu level. Constraint: age must be between 13 and 100.
+
+```csharp
+builder.ToTable("Users", t => t.HasCheckConstraint("CK_User_DateOfBirth",
+    "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100"));
+```
 
 ### Navigation Properties
 
@@ -93,7 +99,6 @@ Navigation properties are defined in configurations for relationship mapping. Th
     Friendship.cs
     FriendshipStatus.cs
     Message.cs
-    Role.cs
 /Data
     AppDbContext.cs
     /Configurations
@@ -121,7 +126,7 @@ Navigation properties are defined in configurations for relationship mapping. Th
             DisplayMessageDto.cs
         /PostDtos
             CreatePostDto.cs
-            DisplayPostDto.cs 
+            DisplayPostDto.cs
         /UserDtos
             DisplayUserDto.cs
             LoginDto.cs
@@ -133,15 +138,15 @@ Navigation properties are defined in configurations for relationship mapping. Th
         PostMapper.cs
         UserMapper.cs
     /Responses
-        Response
-        Response<T> : Response
+        Response.cs
+        Response<T>.cs
     /Services
         AuthService.cs
         PostService.cs
-        CommentService.cs - should we have a separate one or include comment functionality to PostService since Comments are coupled to posts?
+        CommentService.cs
         MessageService.cs
-        FriendshipService.cs - possibly also implement conversation functionality that MessageSerivice should have?
-/Menus - hesitant on this layout. have not decided yet. this is a placeholder
+        FriendshipService.cs
+/Menus — structure not finalised yet
     MainMenu.cs
     AuthMenu.cs
     PostMenu.cs
@@ -166,7 +171,7 @@ The root base class. Provides data access methods usable by all repositories reg
 
 - `Query()` — `protected virtual IQueryable<T>`; override in specific repositories to apply default `Include` chains
 - `GetAllAsync()` — use only when the dataset is known to be small
-- `GetWhereAsync(predicate, page?, pageSize?, orderBy? track?)` — optional pagination; `Skip/Take` translated to SQL; optional ordering; manual ef tracking toggle set to true
+- `GetWhereAsync(predicate, page?, pageSize?, orderBy?, track?)` — optional pagination; `Skip/Take` translated to SQL; optional ordering; EF tracking toggle defaults to true
 - `GetFirstAsync(predicate)` — returns `T?`
 - `AddAsync(T entity)`
 - `DeleteAsync(T entity)`
@@ -181,7 +186,7 @@ Extends `BaseRepository<T>`. Adds methods that depend on a single integer PK.
 
 ### Pagination
 
-`GetWhereAsync` accepts optional `page` and `pageSize`. When both are provided, `Skip/Take` are applied and translated to SQL. When omitted, all matching rows are returned. Use pagination for large unbounded datasets (e.g. all posts). For user-scoped collections of known reasonable size (e.g. posts by a specific user), loading all and paging in memory is acceptable.
+`GetWhereAsync` accepts optional `page` and `pageSize`. When both are provided, `Skip/Take` are applied and translated to SQL. When omitted, all matching rows are returned. Use pagination for large unbounded datasets (e.g. all posts). For user-scoped collections of known reasonable size (e.g. posts by a specific user), loading all is acceptable.
 
 `Skip/Take` apply to the root entity only. Included collections cannot be paginated dynamically — use a fixed `Take` inside filtered include for preview scenarios, or query through the specific repository for full pagination.
 
@@ -191,7 +196,7 @@ Extends `BaseRepository<T>`. Adds methods that depend on a single integer PK.
 
 ### User-facing Item Selection
 
-Numbered lists are display-only. The selected number is used as a collection index once to get the `Id`. All subsequent operations use the `Id`.
+Numbered lists are display-only. The selected number is used as a collection index once to get the `Id`. All subsequent operations use the `Id`. Internal IDs are never displayed to the user.
 
 ---
 
@@ -228,12 +233,13 @@ Methods:
 Extends `BaseRepository<Friendship>` (not `BaseEntityRepository` — composite PK). `Query()` includes `Requester` and `Addressee`.
 
 Methods:
-- `GetAsync(int userA, int userB)` — returns the relationship regardless of who is requester or addressee
+- `GetRelationshipAsync(int userA, int userB)` — returns the relationship regardless of who is requester or addressee
 - `GetAsync(int userId, FriendshipStatus? status)` — returns all friendships for a user, optionally filtered by status
 - `GetPendingRequestsAsync(int userId)`
 - `GetFriendsAsync(int userId)`
 - `GetSentRequestsAsync(int userId)`
-- `HasPendingRequestAsync(int userA, int userB)`
+- `ExistsAsync(int userA, int userB, FriendshipStatus? status)` — checks existence optionally filtered by status; operator precedence handled by grouping the status condition: `(!status.HasValue || friendship.FriendshipStatus == status)`
+- `UpdateStatusAsync(Friendship friendship, FriendshipStatus status)` — sets status and calls `SaveChangesAsync`; takes the already-fetched entity to avoid a redundant DB hit
 
 ### MessageRepository
 
@@ -241,50 +247,140 @@ Extends `BaseEntityRepository<Message>`. `Query()` includes `Sender` and `Receiv
 
 Methods:
 - `GetConversationAsync(int userA, int userB, int? page, int? pageSize)`
-- `GetUnreadAsync(int userId)`
+- `HasUnreadAsync(int userId)` — returns `bool`; translates to a single `AnyAsync` call; used for login notification
 - `MarkAsReadAsync(List<Message> messages)` — used when messages are already loaded; sets `IsRead = true` and calls `SaveChangesAsync` once
-- `MarkConversationAsReadAsync(int senderId, int receiverId)` — used when marking as read without loading messages; uses `ExecuteUpdateAsync` for a single SQL `UPDATE` statement
+- `MarkConversationAsReadAsync(int senderId, int receiverId)` — marks as read without loading messages; uses `ExecuteUpdateAsync` for a single SQL `UPDATE`
 
 ---
 
-## Result\<T\>
+## Response\<T\>
 
-Services return `Result<T>` or `Result` instead of raw data or booleans. Repositories return raw data or `null` — they have no business context to determine whether a null result is an error.
+Services return `Response<T>` or `Response` instead of raw data or booleans. Repositories return raw data or `null` — they have no business context to determine whether a null result is an error.
 
 ```csharp
-public class Response 
+public class Response
 {
-    public bool Success { get; }
-    public string? Message { get; }
-    
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+
     public void Ok() => Success = true;
-    public static Fail(string message) 
+    public virtual void Fail(string message)
     {
         Success = false;
         Message = message;
     }
 }
 
-public class Result<T> : Result
+public class Response<T> : Response
 {
-    public T? Data { get; }
-        
-    public void Ok(T data) 
+    public T? Data { get; set; }
+
+    public void Ok(T data)
     {
         Success = true;
         Data = data;
     }
-    public override void Fail(string message) 
+    public override void Fail(string message)
     {
         Success = false;
         Message = message;
         Data = default;
     }
 }
-
 ```
 
-Menus only display — no business logic. Services interpret repository results, apply business rules, and return `Result` or `Result<T>`.
+`Success` defaults to `true` on instantiation. `Fail` sets it to `false`. Menus only display — no business logic. Services interpret repository results, apply business rules, and return `Response` or `Response<T>`.
+
+Empty collections are not a failure. Read operations that return no results call `response.Ok()` with an empty list. The menu is responsible for displaying "no results" messaging.
+
+---
+
+## DTOs
+
+All DTOs used for display are records. Internal IDs are included in display DTOs for operation handling but are never rendered in console output.
+
+```csharp
+public record DisplayUserDto(int Id, string Username, string? Bio, DateTime DateOfBirth, DateTime CreatedAt);
+public record DisplayPostDto(int Id, string Username, string Content, DateTime CreatedAt, List<DisplayCommentDto>? Comments = null);
+public record DisplayCommentDto(int Id, string Username, string Content, DateTime CreatedAt);
+public record DisplayMessageDto(int Id, string SenderUsername, string Content, bool IsRead, DateTime CreatedAt);
+```
+
+`DisplayPostDto.Comments` is nullable — `null` means comments were not fetched; an empty list means fetched with no results. The menu decides whether to load comments alongside the post or offer it as a separate action.
+
+---
+
+## Mappers
+
+No interfaces — each mapper is a concrete class with whatever method signatures it needs. Mappers are pure property assignments with no injected dependencies and no logic.
+
+### UserMapper
+- `ToDisplay(User user) → DisplayUserDto`
+- `ToFriendship(int requesterId, int addresseeId) → Friendship`
+- `ToEntity(RegisterDto registerDto, string passwordHash, string passwordSalt) → User`
+
+### PostMapper
+- `ToDisplay(Post post) → DisplayPostDto` — maps without comments
+- `ToDisplay(Post post, List<DisplayCommentDto> comments) → DisplayPostDto` — maps with comments
+- `ToEntity(CreatePostDto createPostDto) → Post`
+
+### CommentMapper
+- `ToDisplay(Comment comment) → DisplayCommentDto`
+- `ToEntity(CreateCommentDto createCommentDto) → Comment`
+
+### MessageMapper
+- `ToDisplay(Message message) → DisplayMessageDto`
+- `ToEntity(CreateMessageDto createMessageDto) → Message`
+
+---
+
+## Services
+
+### AuthService
+- `RegisterAsync(RegisterDto dto) → Task<Response>`
+- `LoginAsync(LoginDto dto) → Task<Response<SessionUser>>` — returns `SessionUser` on success; menu stores it as a private field
+
+### PostService
+- `CreatePostAsync(CreatePostDto dto) → Task<Response>`
+- `DeletePostAsync(int postId, int userId) → Task<Response>`
+- `GetFeedAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayPostDto>>>`
+- `GetByUserIdAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayPostDto>>>`
+
+### CommentService
+- `AddCommentAsync(CreateCommentDto dto) → Task<Response>`
+- `DeleteCommentAsync(int commentId, int userId) → Task<Response>`
+- `GetByPostAsync(int postId, int? page, int? pageSize) → Task<Response<List<DisplayCommentDto>>>`
+
+### FriendshipService
+- `SendRequestAsync(int requesterId, int addresseeId) → Task<Response>`
+    - Guards: cannot send to self, addressee must exist, no duplicate pending request, no accepted friendship
+    - If a declined relationship exists (either direction), status is updated to `Pending` rather than inserting a new row (composite PK constraint)
+    - Existing relationship handling extracted to `private HandleExistingRelationshipAsync`
+- `RespondToRequestAsync(int requesterId, int addresseeId, int currentUserId, FriendshipStatus status) → Task<Response>`
+    - Only `Accepted` or `Declined` are valid statuses
+    - Only the addressee can respond
+- `RemoveFriendAsync(int userId, int friendId) → Task<Response>`
+- `GetFriendsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
+- `GetPendingRequestsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
+- `GetSentRequestsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
+- `private GetAsync(int userId, Func<int, int?, int?, Task<List<Friendship>>> query, int? page, int? pageSize)` — shared implementation used by the three Get methods above; takes a repository delegate to avoid duplication
+
+### MessageService
+- `SendMessageAsync(CreateMessageDto dto) → Task<Response>`
+    - `SenderId` comes from the DTO; assumed valid since the caller is always a logged-in user
+    - Validation extracted to `private ValidFriendshipAsync(int senderId, int receiverId)`: checks not self, receiver exists, accepted friendship
+    - Messaging is friends-only
+- `GetConversationAsync(int currentUserId, int responderUserId, int? page, int? pageSize) → Task<Response<List<DisplayMessageDto>>>`
+    - Marks only messages where `ReceiverId == currentUserId` as read after fetch
+- `HasUnreadAsync(int userId) → Task<bool>`
+    - Returns a plain `bool`, not a `Response` — no failure state possible
+    - Called after login to display "You have unread messages" notification
+
+---
+
+## Session Management
+
+`AuthService.LoginAsync` returns a `Response<SessionUser>` on success. Each menu class holds a `private SessionUser _sessionUser` field set after login. Menus pass `_sessionUser.Id` directly to service methods. No shared scoped `SessionContext` — kept simple.
 
 ---
 
@@ -301,6 +397,11 @@ services.AddScoped<CommentRepository>();
 services.AddScoped<FriendshipRepository>();
 services.AddScoped<MessageRepository>();
 
+services.AddScoped<UserMapper>();
+services.AddScoped<PostMapper>();
+services.AddScoped<CommentMapper>();
+services.AddScoped<MessageMapper>();
+
 services.AddScoped<AuthService>();
 services.AddScoped<PostService>();
 services.AddScoped<CommentService>();
@@ -308,6 +409,10 @@ services.AddScoped<FriendshipService>();
 services.AddScoped<MessageService>();
 
 services.AddScoped<MainMenu>();
+services.AddScoped<AuthMenu>();
+services.AddScoped<PostMenu>();
+services.AddScoped<FriendMenu>();
+services.AddScoped<MessageMenu>();
 
 var provider = services.BuildServiceProvider();
 
@@ -319,9 +424,9 @@ mainMenu.Show();
 
 ## Key Design Decisions
 
-- No interfaces — concrete repository and service classes only
+- No interfaces — concrete repository, service, and mapper classes only
 - Repository base split into `BaseRepository<T> where T : class` and `BaseEntityRepository<T> where T : BaseEntity` — allows composite PK entities like `Friendship` to share base methods without forcing a single integer PK
-- `protected readonly AppDbContext _dbContext` on `BaseRepository` — _camelCase with `_` prefix for protected fields
+- `protected readonly AppDbContext _dbContext` on `BaseRepository` — camelCase with `_` prefix for protected fields
 - `Query()` virtual method on `BaseRepository` — specific repositories override to define default includes; all base methods use `Query()` so includes are applied consistently
 - `FriendshipRepository` extends `BaseRepository<Friendship>` directly — composite PK prevents use of `BaseEntityRepository`
 - Each entity has its own `IEntityTypeConfiguration` class, applied via `ApplyConfigurationsFromAssembly`
@@ -329,23 +434,32 @@ mainMenu.Show();
 - `Friendship` and `Message` both have two FKs to `User` — configured with `OnDelete(DeleteBehavior.Restrict)` to avoid multiple cascade paths
 - Messages are standalone (not attached to Friendship) — a conversation is derived via query
 - `CreatedAt` defaults to `DateTime.UtcNow` in `BaseEntity`; declared manually on `Friendship`
-- Enums stored as strings for DB readability - currently no separate model for `FriendshipStatus`
+- Enums stored as strings for DB readability
 - `ExistsAsync` uses `AnyAsync` — translates to `SELECT 1 WHERE EXISTS`, more efficient than loading the entity
 - `ExecuteUpdateAsync` used in `MarkConversationAsReadAsync` — single SQL `UPDATE` without loading entities; bypasses change tracker
-- No early returns — a single `return` at the end of every method; branching is handled via `if/else`; `Result` is declared at the top of the method, mutated through the logic, and returned once at the end
+- `UpdateStatusAsync` on `FriendshipRepository` takes the already-fetched `Friendship` entity — avoids a redundant DB fetch since the entity is always in the change tracker at the call site
+- `FriendshipRepository.ExistsAsync(int, int, FriendshipStatus?)` — nullable status parameter; when provided, filtered; operator precedence guarded by grouping: `(!status.HasValue || friendship.FriendshipStatus == status)`
+- `HasUnreadAsync` returns `bool` directly — no failure state possible, `Response` wrapper unnecessary
+- Empty collection results from read operations are `Ok`, not `Fail` — zero results is a valid state; menus handle the "no results" display
+- `DisplayPostDto.Comments` is nullable — `null` means not fetched; empty list means fetched with no results
+- Mappers are pure property assignments — no injected dependencies, no logic
+- `PostMapper.ToDisplay` has two overloads — one without comments, one with `List<DisplayCommentDto>`; menu decides which to use based on context
+- No early returns — a single `return` at the end of every method; branching via `if/else`; `Response` declared at the top, mutated through logic, returned once at the end
+- Internal IDs never rendered in console output; used only for operation handling after user selection
 
 ---
 
 ## Implementation Steps
 
 1. [x] Create project and install packages
-2. [x] Create entities (inherit `BaseEntity`, `Role` enum on `User`)
+2. [x] Create entities and models
 3. [x] Create entity configurations (Fluent API)
 4. [x] Create `AppDbContext`
 5. [x] First migration and seed data
 6. [x] `BaseRepository<T>` and `BaseEntityRepository<T>`
 7. [x] Specific repositories
-8. [x] Response\<T\>
-9. [ ] Services - AuthService and PostService completed
-10. [ ] Menus
-11. [ ] Wire DI in `Program.cs`
+8. [x] `Response<T>`
+9. [x] Mappers
+10. [x] Services
+11. [ ] Menus
+12. [ ] Wire DI in `Program.cs`

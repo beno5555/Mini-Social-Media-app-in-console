@@ -1,9 +1,10 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos.MessageDtos;
+using social_media_console_app.BusinessLogic.Mappers.Base;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.BusinessLogic.Mappers;
 
-public class MessageMapper
+public class MessageMapper : IMapper<Message, CreateMessageDto, DisplayMessageDto>
 {
     public Message ToEntity(CreateMessageDto createMessageDto)
     {
@@ -17,6 +18,10 @@ public class MessageMapper
 
     public DisplayMessageDto ToDisplay(Message message)
     {
-        return new DisplayMessageDto(message.MessageContent, message.CreatedAt);
+        return new DisplayMessageDto(
+            message.MessageContent,
+            message.SenderUser!.Username,
+            message.CreatedAt,
+            message.IsRead);
     }
 }

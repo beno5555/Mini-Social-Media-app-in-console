@@ -63,4 +63,9 @@ public class MessageRepository : BaseEntityRepository<Message>
                 !message.IsRead)
             .ExecuteUpdateAsync(setter => setter.SetProperty(message => message.IsRead, true));
     }
+
+    public async Task<bool> HasUnreadAsync(int userId)
+    {
+        return await ExistsAsync(message => message.ReceiverUserId == userId && !message.IsRead);
+    }
 }

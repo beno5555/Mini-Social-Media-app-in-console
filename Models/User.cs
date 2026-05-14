@@ -4,10 +4,11 @@ namespace social_media_console_app.Models;
 
 public class User : BaseEntity
 {
-    public string Username     { get; set; } = string.Empty;
-    public string Email        { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
-    public string PasswordSalt { get; set; } = string.Empty;
+    public string   Username     { get; set; } = string.Empty;
+    public string   Email        { get; set; } = string.Empty;
+    public DateTime DateOfBirth  { get; set; }  
+    public string   PasswordHash { get; set; } = string.Empty;
+    public string   PasswordSalt { get; set; } = string.Empty;
 
     public string? Bio { get; set; }
     // role
