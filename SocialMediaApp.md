@@ -138,10 +138,10 @@ Navigation properties are defined in configurations for relationship mapping. Th
     /Services
         AuthService.cs
         PostService.cs
-        CommentService.cs - should we have a separate one or include comment functionality to PostService since Comments are coupled to posts?
+        CommentService.cs
         MessageService.cs
-        FriendshipService.cs - possibly also implement conversation functionality that MessageSerivice should have?
-/Menus - hesitant on this layout. have not decided yet. this is a placeholder
+        FriendshipService.cs
+/Menus - hesitant on the structure of the menu classes. have not decided yet. this is a placeholder
     MainMenu.cs
     AuthMenu.cs
     PostMenu.cs
@@ -254,20 +254,20 @@ Services return `Result<T>` or `Result` instead of raw data or booleans. Reposit
 ```csharp
 public class Response 
 {
-    public bool Success { get; }
-    public string? Message { get; }
+    public bool Success { get; set; }
+    public string? Message { get; set; }
     
     public void Ok() => Success = true;
-    public static Fail(string message) 
+    public virtual void Fail(string message) 
     {
         Success = false;
         Message = message;
     }
 }
 
-public class Result<T> : Result
+public class Response<T> : Response
 {
-    public T? Data { get; }
+    public T? Data { get; set; }
         
     public void Ok(T data) 
     {
@@ -346,6 +346,6 @@ mainMenu.Show();
 6. [x] `BaseRepository<T>` and `BaseEntityRepository<T>`
 7. [x] Specific repositories
 8. [x] Response\<T\>
-9. [ ] Services - AuthService and PostService completed
+9. [x] Services
 10. [ ] Menus
 11. [ ] Wire DI in `Program.cs`

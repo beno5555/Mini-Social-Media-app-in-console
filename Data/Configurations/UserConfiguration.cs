@@ -8,7 +8,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("User");
+        builder.ToTable("User", table => table.HasCheckConstraint("CK_User_DateOfBirth", 
+            "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100") );
         builder.HasKey(user => user.Id);
 
         builder.Property(user => user.Username)
@@ -18,6 +19,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.Email)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(user => user.DateOfBirth)
+            .IsRequired();
 
         builder.HasIndex(user => user.Username).IsUnique();
         builder.HasIndex(user => user.Email).IsUnique();

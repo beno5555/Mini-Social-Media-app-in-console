@@ -58,6 +58,7 @@ public class UserRepository : BaseEntityRepository<User>
             .FirstOrDefaultAsync(predicate);
     }
 
+
     /// <summary>
     /// messages and friends aren't loaded from users.
     /// 

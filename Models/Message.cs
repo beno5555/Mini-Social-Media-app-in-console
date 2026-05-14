@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace social_media_console_app.Models;
 
-public class Message :BaseEntity
+public class Message : BaseEntity
 {
     public string MessageContent { get; set; } = string.Empty;
     public bool   IsRead         { get; set; } = false;

@@ -1,9 +1,10 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
+using social_media_console_app.BusinessLogic.Mappers.Base;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.BusinessLogic.Mappers;
 
-public class CommentMapper
+public class CommentMapper : IMapper<Comment, CreateCommentDto, DisplayCommentDto>
 {
     public Comment ToEntity(CreateCommentDto createCommentDto)
     {
@@ -17,6 +18,6 @@ public class CommentMapper
 
     public DisplayCommentDto ToDisplay(Comment comment)
     {
-        return null;
+        return new DisplayCommentDto(comment.CommenterUser!.Username, comment.CommentContent, comment.CreatedAt);
     }
 }

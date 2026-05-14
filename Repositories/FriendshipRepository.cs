@@ -30,6 +30,12 @@ public class FriendshipRepository : BaseRepository<Friendship>
         return await GetAsync(userId, FriendshipStatus.Pending, pageNumber, pageSize);
     }
 
+    public async Task<List<Friendship>> GetSentRequestsAsync(int userId, int? pageNumber = null, int? pageSize = null)
+    {
+        return await GetWhereAsync(friendship =>
+            friendship.RequesterUserId == userId && friendship.FriendshipStatus == FriendshipStatus.Pending, pageNumber, pageSize);
+    }
+
     /// <summary>
     /// gets the rejected requests that were SENT to user with id userId
     /// </summary>
@@ -51,7 +57,7 @@ public class FriendshipRepository : BaseRepository<Friendship>
     /// <summary>
     /// fetches the friendships of userId which have been accepted (from either)
     /// </summary>
-    public async Task<List<Friendship>> GetFriendsAsync(int userId, int? pageNumber = null, int? pageSize = null)
+    public async Task<List<Friendship>> GetFriendshipsAsync(int userId, int? pageNumber = null, int? pageSize = null)
     {
         return await GetWhereAsync(friendship =>
             (friendship.RequesterUserId == userId || friendship.AddresseeUserId == userId) &&
@@ -60,20 +66,26 @@ public class FriendshipRepository : BaseRepository<Friendship>
     }
     
     /// <summary>
-    /// fetches the accepted request of userA and userB. order does not matter
+    /// fetches the accepted request of userA and userB.
     /// </summary>
-    public async Task<Friendship?> GetRelationshipAsync(int userIdA, int userIdB)
+    public async Task<Friendship?> GetRelationshipAsync(int requesterId, int addresseeId, bool orderMatters = false)
     {
+        if (orderMatters)
+        {
+            return await GetFirstAsync(friendship => 
+                friendship.RequesterUserId == requesterId && friendship.AddresseeUserId == addresseeId);
+        }
         return await GetFirstAsync(friendship =>
-            (friendship.RequesterUserId == userIdA || friendship.RequesterUserId == userIdB) &&
-            (friendship.AddresseeUserId == userIdA || friendship.AddresseeUserId == userIdB));
+            (friendship.RequesterUserId == requesterId || friendship.RequesterUserId == addresseeId) &&
+            (friendship.AddresseeUserId == requesterId || friendship.AddresseeUserId == addresseeId));
     }
 
-    public async Task<bool> ExistsAsync(int userIdA, int userIdB)
+    public async Task<bool> ExistsAsync(int userIdA, int userIdB, FriendshipStatus? status)
     {
         return await ExistsAsync(friendship => 
                 (friendship.RequesterUserId == userIdA || friendship.RequesterUserId == userIdB) &&
-                (friendship.AddresseeUserId == userIdA || friendship.AddresseeUserId == userIdB));
+                (friendship.AddresseeUserId == userIdA || friendship.AddresseeUserId == userIdB) &&
+                (friendship.FriendshipStatus == status || !status.HasValue));
     }
 
     public async Task UpdateStatusAsync(Friendship friendship, FriendshipStatus status)

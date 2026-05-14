@@ -1,4 +1,5 @@
-﻿using social_media_console_app.BusinessLogic.Mappers;
+﻿using social_media_console_app.BusinessLogic.Dtos.UserDtos;
+using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Responses;
 using social_media_console_app.Constants.Enums;
 using social_media_console_app.Models;
@@ -38,19 +39,7 @@ public class FriendshipService
                 }
                 else
                 {
-                    if (relationship.FriendshipStatus == FriendshipStatus.Accepted)
-                    {
-                        response.Fail("You are already friends with this user");
-                    }
-                    else if (relationship.FriendshipStatus == FriendshipStatus.Pending)
-                    {
-                        response.Fail("A pending friend request already exists");
-                    }
-                    else if (relationship.FriendshipStatus == FriendshipStatus.Declined &&
-                             relationship.RequesterUserId == requesterId)
-                    {
-                        await _friendshipRepository.UpdateStatusAsync(relationship, FriendshipStatus.Pending);
-                    }
+                    response = await HandleExistingRelationship(relationship, requesterId);
                 }
             }
             else
@@ -66,10 +55,106 @@ public class FriendshipService
         return response;
     }
 
+    private async Task<Response> HandleExistingRelationship(Friendship relationship, int requesterId)
+    {
+        var response = new Response();
+        
+        if (relationship.FriendshipStatus == FriendshipStatus.Accepted)
+        {
+            response.Fail("You are already friends with this user");
+        }
+        else if (relationship.FriendshipStatus == FriendshipStatus.Pending)
+        {
+            response.Fail("A pending friend request already exists");
+        }
+        else if (relationship.FriendshipStatus == FriendshipStatus.Declined)
+        {
+            await _friendshipRepository.UpdateStatusAsync(relationship, FriendshipStatus.Pending);
+        }
+
+        return response;
+    }
+
     public async Task<Response> RespondToRequestAsync(int requesterId, int addresseeId, FriendshipStatus status)
     {
         var response = new Response();
 
+        if (ValidRequestResponse(status))
+        {
+            if (requesterId != addresseeId)
+            {
+                var friendship = await _friendshipRepository.GetRelationshipAsync(requesterId, addresseeId, true);
+
+                if (friendship is not null && friendship.FriendshipStatus == FriendshipStatus.Pending)
+                {
+                    await _friendshipRepository.UpdateStatusAsync(friendship, status);
+                }
+                else
+                {
+                    response.Fail("No pending requests found");
+                }
+            }
+            else
+            {
+                response.Fail("Cannot respond to a self-request");
+            }
+        }
+
         return response;
     }
+
+    public async Task<Response> RemoveFriendAsync(int userId, int friendId)
+    {
+        var response = new Response();
+
+        var friendship = await _friendshipRepository.GetRelationshipAsync(userId, friendId);
+
+        if (friendship is not null)
+        {
+            await _friendshipRepository.DeleteAsync(friendship);
+        }
+        else
+        {
+            response.Fail("Friendship not found");
+        }
+
+        return response;
+    }
+
+    public async Task<Response<List<DisplayUserDto>>> GetFriendsAsync(int userId, int? pageNumber, int? pageSize)
+    {
+        return await FetchRelationshipsAsync(userId, _friendshipRepository.GetFriendshipsAsync, pageNumber, pageSize);
+    }
+
+    public async Task<Response<List<DisplayUserDto>>> GetPendingRequestsAsync(int userId, int? pageNumber,
+        int?                                                                      pageSize)
+    {
+        return await FetchRelationshipsAsync(userId, _friendshipRepository.GetPendingRequestsAsync, pageNumber, pageSize);
+    }
+    
+    public async Task<Response<List<DisplayUserDto>>> GetSentRequestsAsync(int userId, int? pageNumber, int? pageSize)
+    {
+        return await FetchRelationshipsAsync(userId, _friendshipRepository.GetSentRequestsAsync, pageNumber, pageSize);
+    }
+
+    private async Task<Response<List<DisplayUserDto>>> FetchRelationshipsAsync(int userId, Func<int, int?, int?, Task<List<Friendship>>> getAsync, int? pageNumber, int? pageSize)
+    {
+        var response = new Response<List<DisplayUserDto>>();
+
+        var relationships = await getAsync(userId, pageNumber, pageSize);
+
+        var friends = relationships
+            .Select(relationship =>
+                relationship.RequesterUserId == userId ? relationship.AddresseeUser : relationship.RequesterUser)
+            .OfType<User>()
+            .ToList();
+    
+        var userDtos =  friends.Select(_userMapper.ToDisplay).ToList();
+        response.Ok(userDtos);
+
+        return response;
+    }
+
+    public bool ValidRequestResponse(FriendshipStatus status) =>
+        status is FriendshipStatus.Accepted or FriendshipStatus.Declined;
 }

@@ -59,13 +59,13 @@ public class PostService
 
         if (userExists)
         {
-            var friends = await _friendshipRepository.GetFriendsAsync(userId);
+            var friends = await _friendshipRepository.GetFriendshipsAsync(userId);
 
             if (friends.Count > 0)
             {
                 List<int> friendIds = friends.Select(friend =>
                     friend.RequesterUserId == userId ? friend.AddresseeUserId : friend.RequesterUserId).ToList();
-                var posts    = await _postRepository.GetFeedAsync(friendIds, pageNumber, pageSize);
+                var posts = await _postRepository.GetFeedAsync(friendIds, pageNumber, pageSize);
 
                 if (posts.Count > 0)
                 {
