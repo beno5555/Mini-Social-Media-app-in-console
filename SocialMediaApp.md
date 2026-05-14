@@ -380,7 +380,7 @@ No interfaces — each mapper is a concrete class with whatever method signature
 
 ## Session Management
 
-`AuthService.LoginAsync` returns a `Response<SessionUser>` on success. Each menu class holds a `private SessionUser _sessionUser` field set after login. Menus pass `_sessionUser.Id` directly to service methods. No shared scoped `SessionContext` — kept simple.
+`AuthService.LoginAsync` returns a `Response<SessionUser>` on success. Each menu class holds a `private readonly SessionUser _sessionUser` field which is set via DI as a scoped service and its properties (id and username) are updated per login.
 
 ---
 
@@ -403,21 +403,25 @@ services.AddScoped<CommentMapper>();
 services.AddScoped<MessageMapper>();
 
 services.AddScoped<AuthService>();
+services.AddScoped<AccountService>();
 services.AddScoped<PostService>();
 services.AddScoped<CommentService>();
 services.AddScoped<FriendshipService>();
 services.AddScoped<MessageService>();
 
 services.AddScoped<MainMenu>();
-services.AddScoped<AuthMenu>();
+services.AddScoped<UnauthenticatedMenu>();
+services.AddScoped<AuthenticatedMenu>();
 services.AddScoped<PostMenu>();
 services.AddScoped<FriendMenu>();
 services.AddScoped<MessageMenu>();
 
+serivces.AddScoped<SessionUser>();
+
 var provider = services.BuildServiceProvider();
 
 var mainMenu = provider.GetRequiredService<MainMenu>();
-mainMenu.Show();
+mainMenu.Run();
 ```
 
 ---
@@ -447,6 +451,33 @@ mainMenu.Show();
 - No early returns — a single `return` at the end of every method; branching via `if/else`; `Response` declared at the top, mutated through logic, returned once at the end
 - Internal IDs never rendered in console output; used only for operation handling after user selection
 
+---
+## Menu Structure
+
+`MainMenu` is the top-level controller. It owns the outer loop and decides whether to show `UnauthenticatedMenu` or `AuthenticatedMenu` based on whether `SessionUser` is populated.
+
+```
+MainMenu (outer loop)
+├── UnauthenticatedMenu
+│   ├── Register → returns to UnauthenticatedMenu on failure or success
+│   └── Login → on success, MainMenu enters AuthenticatedMenu
+└── AuthenticatedMenu
+    ├── PostMenu
+    ├── FriendMenu
+    └── MessageMenu
+```
+
+Each menu has a `Run()` method with an internal loop. The loop displays options, reads input, and handles selection. It exits only when the user selects "back" or the equivalent. When `AuthenticatedMenu` calls `_postMenu.Show()`, it waits for `PostMenu` to return before resuming its own loop.
+
+Logout lives in `AuthenticatedMenu`. It clears `SessionUser` properties and breaks the authenticated loop. `MainMenu` sees the session is empty and re-enters `UnauthenticatedMenu`.
+
+### Menu Implementation Order
+
+1. `UnauthenticatedMenu` — Register, Login
+2. `MainMenu` — entry point, routes based on session state
+3. `PostMenu` — create post, view feed, delete post, view comments
+4. `FriendMenu` — send request, view pending/sent requests, accept/decline, view friends, remove friend
+5. `MessageMenu` — send message, view conversation
 ---
 
 ## Implementation Steps
