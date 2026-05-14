@@ -8,7 +8,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("User", table => table.HasCheckConstraint("CK_User_DateOfBirth", 
+        builder.ToTable("Users", table => table.HasCheckConstraint("CK_User_DateOfBirth", 
             "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100") );
         builder.HasKey(user => user.Id);
 
@@ -40,11 +40,24 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             new User()
             {
                 Id = 1,
-                Username = "first admin",
+                Username = "first_admin",
                 Bio = "I am admin of this app",
                 Email = "admin123@gmail.com",
                 PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=", // admin123
-                PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg="
+                PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
+                DateOfBirth = new DateTime(2000, 4, 17, 0, 0, 0, DateTimeKind.Utc),
+                CreatedAt = new DateTime(2026, 5, 14, 18, 29, 30, DateTimeKind.Utc)
+            },
+            new User
+            {
+                Id = 2,
+                Username = "second_admin",
+                Bio = "I am the second admin of this app",
+                Email = "secondadmin123@gmail.com",
+                PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=", // admin123
+                PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
+                DateOfBirth = new DateTime(2005, 12, 17, 0,  0,  0,  DateTimeKind.Utc),
+                CreatedAt = new DateTime(2026,   5, 14, 18, 40, 30, DateTimeKind.Utc)
             }
         );
 

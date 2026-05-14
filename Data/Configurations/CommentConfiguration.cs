@@ -13,16 +13,27 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
 
         builder.Property(comment => comment.CommentContent)
             .IsRequired()
-            .HasMaxLength(300);
+            .HasMaxLength(1000);
 
         builder.HasOne(comment => comment.CommenterUser)
             .WithMany(user => user.Comments)
             .HasForeignKey(comment => comment.CommenterUserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(comment => comment.Post)
             .WithMany(post => post.Comments)
             .HasForeignKey(comment => comment.PostId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasData(
+            new Comment
+            {
+                Id = 1,
+                CommenterUserId = 2,
+                PostId = 1,
+                CommentContent = "Nice post!",
+                CreatedAt = new DateTime(2026, 5, 14, 18, 42, 34, DateTimeKind.Utc),
+            }
+        );
     }
 }

@@ -3,11 +3,11 @@ using social_media_console_app.Repositories;
 
 namespace social_media_console_app.BusinessLogic.Services;
 
-public class AccountSerice
+public class AccountService
 {
     private readonly UserRepository _userRepository;
 
-    public AccountSerice(UserRepository userRepository)
+    public AccountService(UserRepository userRepository)
     {
         _userRepository = userRepository;
     }

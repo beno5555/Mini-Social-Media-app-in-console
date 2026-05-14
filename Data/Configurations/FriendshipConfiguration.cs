@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using social_media_console_app.Constants.Enums;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -13,6 +14,7 @@ public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
 
         builder.Property(friendship => friendship.FriendshipStatus)
             .IsRequired()
+            .HasMaxLength(30)
             .HasConversion<string>();
         
         builder.HasOne(friendship => friendship.RequesterUser)
@@ -24,5 +26,14 @@ public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
             .WithMany(addresseeUser => addresseeUser.ReceivedFriendRequests)
             .HasForeignKey(friendship => friendship.AddresseeUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasData(
+            new Friendship
+            {
+                AddresseeUserId = 1,
+                RequesterUserId = 2,
+                CreatedAt = new DateTime(2026, 5, 14, 18, 43, 58, DateTimeKind.Utc),
+                FriendshipStatus = FriendshipStatus.Accepted
+            });
     }
 }

@@ -12,8 +12,8 @@ using social_media_console_app.Data;
 namespace social_media_console_app.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260509092436_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260514191548_SeedingMigration")]
+    partial class SeedingMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,8 +35,8 @@ namespace social_media_console_app.Migrations
 
                     b.Property<string>("CommentContent")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("CommenterUserId")
                         .HasColumnType("int");
@@ -54,6 +54,16 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("Comments", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CommentContent = "Nice post!",
+                            CommenterUserId = 2,
+                            CreatedAt = new DateTime(2026, 5, 14, 18, 42, 34, 0, DateTimeKind.Utc),
+                            PostId = 1
+                        });
                 });
 
             modelBuilder.Entity("social_media_console_app.Models.Friendship", b =>
@@ -69,13 +79,23 @@ namespace social_media_console_app.Migrations
 
                     b.Property<string>("FriendshipStatus")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.HasKey("RequesterUserId", "AddresseeUserId");
 
                     b.HasIndex("AddresseeUserId");
 
                     b.ToTable("Friendships", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            RequesterUserId = 2,
+                            AddresseeUserId = 1,
+                            CreatedAt = new DateTime(2026, 5, 14, 18, 43, 58, 0, DateTimeKind.Utc),
+                            FriendshipStatus = "Pending"
+                        });
                 });
 
             modelBuilder.Entity("social_media_console_app.Models.Message", b =>
@@ -125,12 +145,13 @@ namespace social_media_console_app.Migrations
 
                     b.Property<string>("PostContent")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasMaxLength(3000)
+                        .HasColumnType("nvarchar(3000)");
 
                     b.Property<string>("PostTitle")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -145,7 +166,7 @@ namespace social_media_console_app.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 5, 9, 9, 24, 35, 334, DateTimeKind.Utc).AddTicks(4924),
+                            CreatedAt = new DateTime(2026, 5, 14, 18, 30, 58, 0, DateTimeKind.Utc),
                             PostContent = "this is initial admin post",
                             PostTitle = "Initial admin post",
                             UserId = 1
@@ -167,6 +188,9 @@ namespace social_media_console_app.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime>("DateOfBirth")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -174,11 +198,13 @@ namespace social_media_console_app.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PasswordSalt")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -193,18 +219,33 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("User", (string)null);
+                    b.ToTable("Users", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_User_DateOfBirth", "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100");
+                        });
 
                     b.HasData(
                         new
                         {
                             Id = 1,
                             Bio = "I am admin of this app",
-                            CreatedAt = new DateTime(2026, 5, 9, 9, 24, 35, 341, DateTimeKind.Utc).AddTicks(5453),
+                            CreatedAt = new DateTime(2026, 5, 14, 18, 29, 30, 0, DateTimeKind.Utc),
+                            DateOfBirth = new DateTime(2000, 4, 17, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin123@gmail.com",
                             PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=",
                             PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
-                            Username = "first admin"
+                            Username = "first_admin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Bio = "I am the second admin of this app",
+                            CreatedAt = new DateTime(2026, 5, 14, 18, 40, 30, 0, DateTimeKind.Utc),
+                            DateOfBirth = new DateTime(2005, 12, 17, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "secondadmin123@gmail.com",
+                            PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=",
+                            PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
+                            Username = "second_admin"
                         });
                 });
 
@@ -213,13 +254,13 @@ namespace social_media_console_app.Migrations
                     b.HasOne("social_media_console_app.Models.User", "CommenterUser")
                         .WithMany("Comments")
                         .HasForeignKey("CommenterUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("social_media_console_app.Models.Post", "Post")
                         .WithMany("Comments")
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("CommenterUser");

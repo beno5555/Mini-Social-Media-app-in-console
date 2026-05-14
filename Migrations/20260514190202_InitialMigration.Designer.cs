@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using social_media_console_app.Data;
 
@@ -11,9 +12,11 @@ using social_media_console_app.Data;
 namespace social_media_console_app.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514190202_InitialMigration")]
+    partial class InitialMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,16 +54,6 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("Comments", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CommentContent = "Nice post!",
-                            CommenterUserId = 2,
-                            CreatedAt = new DateTime(2026, 5, 14, 18, 42, 34, 0, DateTimeKind.Utc),
-                            PostId = 1
-                        });
                 });
 
             modelBuilder.Entity("social_media_console_app.Models.Friendship", b =>
@@ -84,15 +77,6 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("AddresseeUserId");
 
                     b.ToTable("Friendships", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RequesterUserId = 2,
-                            AddresseeUserId = 1,
-                            CreatedAt = new DateTime(2026, 5, 14, 18, 43, 58, 0, DateTimeKind.Utc),
-                            FriendshipStatus = "Accepted"
-                        });
                 });
 
             modelBuilder.Entity("social_media_console_app.Models.Message", b =>
@@ -127,17 +111,6 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("SenderUserId");
 
                     b.ToTable("Messages", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 5, 14, 18, 47, 58, 0, DateTimeKind.Utc),
-                            IsRead = false,
-                            MessageContent = "Hello first admin! i am the second admin",
-                            ReceiverUserId = 1,
-                            SenderUserId = 2
-                        });
                 });
 
             modelBuilder.Entity("social_media_console_app.Models.Post", b =>
@@ -227,7 +200,7 @@ namespace social_media_console_app.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users", null, t =>
+                    b.ToTable("User", null, t =>
                         {
                             t.HasCheckConstraint("CK_User_DateOfBirth", "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100");
                         });
@@ -243,17 +216,6 @@ namespace social_media_console_app.Migrations
                             PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=",
                             PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
                             Username = "first_admin"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Bio = "I am the second admin of this app",
-                            CreatedAt = new DateTime(2026, 5, 14, 18, 40, 30, 0, DateTimeKind.Utc),
-                            DateOfBirth = new DateTime(2005, 12, 17, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "secondadmin123@gmail.com",
-                            PasswordHash = "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=",
-                            PasswordSalt = "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=",
-                            Username = "second_admin"
                         });
                 });
 

@@ -24,6 +24,17 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .WithMany(receiverUser => receiverUser.ReceivedMessages)
             .HasForeignKey(message => message.ReceiverUserId)
             .OnDelete(DeleteBehavior.Restrict);
-        
+
+        builder.HasData(
+            new Message
+            {
+                Id = 1,
+                SenderUserId = 2, 
+                ReceiverUserId = 1,
+                MessageContent = "Hello first admin! i am the second admin",
+                IsRead = false,
+                CreatedAt = new DateTime(2026, 5, 14, 18, 47, 58, DateTimeKind.Utc),
+                
+            });
     }
 }

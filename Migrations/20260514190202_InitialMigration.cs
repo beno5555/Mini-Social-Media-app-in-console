@@ -19,14 +19,16 @@ namespace social_media_console_app.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Username = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(100)", nullable: false),
-                    PasswordSalt = table.Column<string>(type: "nvarchar(100)", nullable: false),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PasswordSalt = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Bio = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_User", x => x.Id);
+                    table.CheckConstraint("CK_User_DateOfBirth", "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100");
                 });
 
             migrationBuilder.CreateTable(
@@ -35,7 +37,7 @@ namespace social_media_console_app.Migrations
                 {
                     RequesterUserId = table.Column<int>(type: "int", nullable: false),
                     AddresseeUserId = table.Column<int>(type: "int", nullable: false),
-                    FriendshipStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FriendshipStatus = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -90,8 +92,8 @@ namespace social_media_console_app.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PostTitle = table.Column<string>(type: "nvarchar(100)", nullable: false),
-                    PostContent = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    PostTitle = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PostContent = table.Column<string>(type: "nvarchar(3000)", maxLength: 3000, nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -112,7 +114,7 @@ namespace social_media_console_app.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    CommentContent = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    CommentContent = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     CommenterUserId = table.Column<int>(type: "int", nullable: false),
                     PostId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -124,25 +126,23 @@ namespace social_media_console_app.Migrations
                         name: "FK_Comments_Posts_PostId",
                         column: x => x.PostId,
                         principalTable: "Posts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Comments_User_CommenterUserId",
                         column: x => x.CommenterUserId,
                         principalTable: "User",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
                 table: "User",
-                columns: new[] { "Id", "Bio", "CreatedAt", "Email", "PasswordHash", "PasswordSalt", "Username" },
-                values: new object[] { 1, "I am admin of this app", new DateTime(2026, 5, 9, 9, 24, 35, 341, DateTimeKind.Utc).AddTicks(5453), "admin123@gmail.com", "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=", "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=", "first admin" });
+                columns: new[] { "Id", "Bio", "CreatedAt", "DateOfBirth", "Email", "PasswordHash", "PasswordSalt", "Username" },
+                values: new object[] { 1, "I am admin of this app", new DateTime(2026, 5, 14, 18, 29, 30, 0, DateTimeKind.Utc), new DateTime(2000, 4, 17, 0, 0, 0, 0, DateTimeKind.Utc), "admin123@gmail.com", "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=", "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=", "first_admin" });
 
             migrationBuilder.InsertData(
                 table: "Posts",
                 columns: new[] { "Id", "CreatedAt", "PostContent", "PostTitle", "UserId" },
-                values: new object[] { 1, new DateTime(2026, 5, 9, 9, 24, 35, 334, DateTimeKind.Utc).AddTicks(4924), "this is initial admin post", "Initial admin post", 1 });
+                values: new object[] { 1, new DateTime(2026, 5, 14, 18, 30, 58, 0, DateTimeKind.Utc), "this is initial admin post", "Initial admin post", 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_CommenterUserId",

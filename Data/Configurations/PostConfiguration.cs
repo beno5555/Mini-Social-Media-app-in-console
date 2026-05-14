@@ -17,7 +17,7 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         
         builder.Property(post => post.PostContent)
             .IsRequired()
-            .HasMaxLength(1000);
+            .HasMaxLength(3000);
 
         builder.HasOne(post => post.User)
             .WithMany(user => user.Posts)
@@ -30,7 +30,8 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
                 Id = 1,
                 UserId = 1,
                 PostTitle = "Initial admin post",
-                PostContent = "this is initial admin post"
+                PostContent = "this is initial admin post",
+                CreatedAt = new DateTime(2026, 5, 14, 18, 30, 58, DateTimeKind.Utc)
             }
         );
     }
