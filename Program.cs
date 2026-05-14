@@ -4,6 +4,7 @@ using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Services;
 using social_media_console_app.Data;
 using social_media_console_app.Menus;
+using social_media_console_app.Menus.Authenticated;
 using social_media_console_app.Repositories;
 
 var services = new ServiceCollection();
