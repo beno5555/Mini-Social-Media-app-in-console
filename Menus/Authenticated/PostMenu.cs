@@ -29,12 +29,12 @@ public class PostMenu : BaseMenu
     
     protected override Task CompleteOperation(int choice)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     protected override void OnBack()
     {
-        throw new NotImplementedException();
+        
     }
 
 }

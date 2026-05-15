@@ -21,11 +21,6 @@ public class MessageMenu : BaseMenu
     
     protected override Task CompleteOperation(int choice)
     {
-        throw new NotImplementedException();
-    }
-
-    protected override void OnBack()
-    {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }
