@@ -1,5 +1,4 @@
-﻿using ProjectHelperLibrary.Utilities;
-using social_media_console_app.BusinessLogic.Dtos;
+﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.Helpers;
 
 namespace social_media_console_app.Menus.Base;
@@ -41,12 +40,11 @@ public abstract class BaseMenu
     /// <returns>a boolean to indicate whether a program should exit or not. (Used for UnauthenticatedMenu)</returns>
     public virtual async Task<bool> Run()
     {
-        await OnEnter();
-        bool run      = true;
+        bool run = true;
 
         while (run)
         {
-            Console.Clear();
+            await OnEnter();
             
             Printer.PrintLines(MenuOptions, BackLabel);
             int choice = Prompter.GetIntInput("", 0, MenuOptions.Count);

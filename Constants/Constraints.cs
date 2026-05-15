@@ -25,6 +25,6 @@ public static class Constraints
     public const int ConversationPageSize = 20;
     
     public const string EmailRegexPattern    = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-    public const string UsernameRegexPattern = @"^(?=.*[a-zA-Z])[a-zA-Z\s'. -]+$";
+    public const string UsernameRegexPattern = "^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$";
 
 }

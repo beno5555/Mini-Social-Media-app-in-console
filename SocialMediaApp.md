@@ -27,7 +27,7 @@ Microsoft.Extensions.DependencyInjection
 - Register and login (with password hashing)
 - Create, view, and delete posts (text only)
 - Comment on posts
-- Send, accept, and decline friend requests; view friends list
+- Send, accept, and decline friend requests; view friends list; browse and search users
 - Send and view messages between users
 
 ---
@@ -39,6 +39,7 @@ Entities / Models
 DbContext + Configurations
 Repositories (concrete classes, no interfaces)
 Services
+Helpers (Printer, Prompter)
 Menus
 Program.cs (DI wiring)
 ```
@@ -73,7 +74,7 @@ public abstract class BaseEntity
 
 ```csharp
 builder.ToTable("Users", t => t.HasCheckConstraint("CK_User_DateOfBirth",
-    "DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN 13 AND 100"));
+    $"DATEDIFF(year, DateOfBirth, GETUTCDATE()) BETWEEN {Constraints.MinAge} AND {Constraints.MaxAge}"));
 ```
 
 ### Navigation Properties
@@ -142,16 +143,27 @@ Navigation properties are defined in configurations for relationship mapping. Th
         Response<T>.cs
     /Services
         AuthService.cs
+        AccountService.cs
         PostService.cs
         CommentService.cs
         MessageService.cs
         FriendshipService.cs
-/Menus — structure not finalised yet
+/Constants
+    Constraints.cs
+/Helpers
+    CreateDto.cs
+    Printer.cs
+    Prompter.cs
+/Menus
+    /Base
+        BaseMenu.cs
     MainMenu.cs
-    AuthMenu.cs
-    PostMenu.cs
-    FriendMenu.cs
-    MessageMenu.cs
+    UnauthenticatedMenu.cs
+    /Authenticated
+      AuthenticatedMenu.cs
+      PostMenu.cs
+      FriendMenu.cs
+      MessageMenu.cs
 Program.cs
 ```
 
@@ -204,13 +216,14 @@ Numbered lists are display-only. The selected number is used as a collection ind
 
 ### UserRepository
 
-Extends `BaseEntityRepository<User>`. No `Query()` override — User nav properties are never eagerly loaded by default due to their size.
+Extends `BaseEntityRepository<User>`.  `Query()` includes posts and comments only. (arguable whether to remove query overload for users or not)
 
 Methods:
 - `GetByUsernameAsync(string username)`
 - `GetByEmailAsync(string email)`
 - `GetWithPostsAsync(Expression<Func<User, bool>> predicate, int recentPostsCount = 10)` — loads user with N most recent posts via filtered include
 - `GetWithPostsByUsernameAsync(string username, int recentPostsCount = 10)`
+- `SearchByUsernameAsync(string query, int excludeUserId, int? page, int? pageSize)` — translates to `LIKE '%query%'` via `EF.Functions.Like`; excludes the current user
 
 ### PostRepository
 
@@ -297,7 +310,7 @@ Empty collections are not a failure. Read operations that return no results call
 
 ## DTOs
 
-All DTOs used for display are records. Internal IDs are included in display DTOs for operation handling but are never rendered in console output.
+All DTOs used for display are records. Internal IDs are included in display DTOs for operation handling but are never rendered in console output (will remove ids completely if I see that I do not actually need it in the menu layer)
 
 ```csharp
 public record DisplayUserDto(int Id, string Username, string? Bio, DateTime DateOfBirth, DateTime CreatedAt);
@@ -307,6 +320,19 @@ public record DisplayMessageDto(int Id, string SenderUsername, string Content, b
 ```
 
 `DisplayPostDto.Comments` is nullable — `null` means comments were not fetched; an empty list means fetched with no results. The menu decides whether to load comments alongside the post or offer it as a separate action.
+
+### SessionUser
+
+`SessionUser` is a plain class (not a record) registered as scoped. Its properties are mutated on login and cleared on logout.
+
+```csharp
+public class SessionUser
+{
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public bool IsLoggedIn => Id != 0;
+}
+```
 
 ---
 
@@ -340,6 +366,11 @@ No interfaces — each mapper is a concrete class with whatever method signature
 - `RegisterAsync(RegisterDto dto) → Task<Response>`
 - `LoginAsync(LoginDto dto) → Task<Response<SessionUser>>` — returns `SessionUser` on success; menu stores it as a private field
 
+### AccountService
+- `GetByUsernameAsync(string username) → Task<Response<DisplayUserDto>>`
+- `SearchUsersAsync(string query, int currentUserId, int? page, int? pageSize) → Task<List<DisplayUserDto>>` — returns list directly; no failure state possible
+- `DeleteAccountAsync(int userId) → Task<Response>` — fails a response if user was not found
+
 ### PostService
 - `CreatePostAsync(CreatePostDto dto) → Task<Response>`
 - `DeletePostAsync(int postId, int userId) → Task<Response>`
@@ -353,12 +384,12 @@ No interfaces — each mapper is a concrete class with whatever method signature
 
 ### FriendshipService
 - `SendRequestAsync(int requesterId, int addresseeId) → Task<Response>`
-    - Guards: cannot send to self, addressee must exist, no duplicate pending request, no accepted friendship
-    - If a declined relationship exists (either direction), status is updated to `Pending` rather than inserting a new row (composite PK constraint)
-    - Existing relationship handling extracted to `private HandleExistingRelationshipAsync`
+  - Guards: cannot send to self, addressee must exist, no duplicate pending request, no accepted friendship
+  - If a declined relationship exists (either direction), status is updated to `Pending` rather than inserting a new row (composite PK constraint)
+  - Existing relationship handling extracted to `private HandleExistingRelationshipAsync`
 - `RespondToRequestAsync(int requesterId, int addresseeId, int currentUserId, FriendshipStatus status) → Task<Response>`
-    - Only `Accepted` or `Declined` are valid statuses
-    - Only the addressee can respond
+  - Only `Accepted` or `Declined` are valid statuses
+  - Only the addressee can respond
 - `RemoveFriendAsync(int userId, int friendId) → Task<Response>`
 - `GetFriendsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
 - `GetPendingRequestsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
@@ -367,20 +398,181 @@ No interfaces — each mapper is a concrete class with whatever method signature
 
 ### MessageService
 - `SendMessageAsync(CreateMessageDto dto) → Task<Response>`
-    - `SenderId` comes from the DTO; assumed valid since the caller is always a logged-in user
-    - Validation extracted to `private ValidFriendshipAsync(int senderId, int receiverId)`: checks not self, receiver exists, accepted friendship
-    - Messaging is friends-only
+  - `SenderId` comes from the DTO; assumed valid since the caller is always a logged-in user
+  - Validation extracted to `private ValidFriendshipAsync(int senderId, int receiverId)`: checks not self, receiver exists, accepted friendship
+  - Messaging is friends-only
 - `GetConversationAsync(int currentUserId, int responderUserId, int? page, int? pageSize) → Task<Response<List<DisplayMessageDto>>>`
-    - Marks only messages where `ReceiverId == currentUserId` as read after fetch
+  - Marks only messages where `ReceiverId == currentUserId` as read after fetch
 - `HasUnreadAsync(int userId) → Task<bool>`
-    - Returns a plain `bool`, not a `Response` — no failure state possible
-    - Called after login to display "You have unread messages" notification
+  - Returns a plain `bool`, not a `Response` — no failure state possible
+  - Called after login to display "You have unread messages" notification
+
+---
+
+## Constants
+
+```csharp
+public static class Constraints
+{
+    public const int EmailMinLength    = 10;
+    public const int EmailMaxLength    = 100;
+    public const int UsernameMinLength = 6;
+    public const int UsernameMaxLength = 100;
+    public const int PasswordMinLength = 8;
+    public const int PasswordMaxLength = 100;
+    public const int BioMaxLength      = 300;
+    public const int PostMaxLength     = 1000;
+    public const int CommentMaxLength  = 500;
+    public const int MessageMaxLength  = 1000;
+    public const int MinAge            = 13;
+    public const int MaxAge            = 100;
+    public const int DefaultPageSize   = 10;
+    public const int ConversationPageSize = 20;
+
+    public const string EmailRegexPattern    = "";
+    public const string UsernameRegexPattern = @"^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$";
+}
+```
+
+Check constraints and menu validation both reference `Constraints` constants. Max lengths are enforced at the column level via `HasMaxLength`; min lengths are enforced at the menu level only.
+
+`PasswordHash` and `PasswordSalt` use `IsFixedLength().HasMaxLength(44)` — PBKDF2 with a 32-byte output Base64-encodes to exactly 44 characters.
+
+---
+
+## Helpers
+
+### Printer (static)
+
+Centralises all console output formatting for DTOs. The `PrintList<T>` method extracts the for-loop so typed print methods can be passed as method groups.
+
+`PrintUser` shows username only — used in numbered list contexts. `PrintUserDetail` shows all fields — used for profile view. `PrintMessage` receives `currentUsername` to render the sender label as "You" when appropriate.
+
+### Prompter (static)
+
+Handles all console input with format validation. Loops infinitely until valid input is entered — no N-attempt limit. The user presses Enter on an optional field to skip it.
+
+```csharp
+public static class Prompter
+{
+    public static string GetStringInput(string prompt, int minLength, int maxLength, params string[] regexPatterns) { ... }
+    public static string? GetOptionalStringInput(string prompt, int maxLength, params string[] regexPatterns) { ... }
+    public static DateTime GetDateInput(string prompt, int minAge, int maxAge) { ... }
+    public static int GetIntInput(string prompt, int min, int max) { ... }
+}
+```
+
+- `GetStringInput` — loops until input satisfies length bounds and all provided regex patterns. Used for username, email, password, post content, etc.
+- `GetOptionalStringInput` — returns `null` on empty input; otherwise validates max length and loops on invalid non-empty input. Used for bio.
+- `GetDateInput` — converts `minAge`/`maxAge` to boundary dates internally; loops until a valid `yyyy-MM-dd` date within the age range is entered.
+- `GetIntInput` — loops until a valid integer within `[min, max]` is entered. Returns `int` (not nullable) since it loops until valid.
+
+Format validation (length, regex, date format) lives in `Prompter`. Business validation (username uniqueness, credential correctness) lives in services.
+
+Login does not use regex validation on the identifier field — the service handles invalid credentials.
 
 ---
 
 ## Session Management
 
-`AuthService.LoginAsync` returns a `Response<SessionUser>` on success. Each menu class holds a `private readonly SessionUser _sessionUser` field which is set via DI as a scoped service and its properties (id and username) are updated per login.
+`AuthService.LoginAsync` returns a `Response<SessionUser>` on success. `SessionUser` is a scoped singleton shared across all menus via DI. Its `Id` and `Username` are set on login and cleared on logout. `IsLoggedIn` is a computed property (`Id != 0`) used by `MainMenu` for routing.
+
+---
+
+## Menu Structure
+
+`MainMenu` is the top-level controller. It owns the outer loop and routes between `UnauthenticatedMenu` and `AuthenticatedMenu` based on `SessionUser.IsLoggedIn` and the `bool` returned by `UnauthenticatedMenu.Run()`.
+
+```
+MainMenu (outer loop)
+├── UnauthenticatedMenu (BaseMenu with override on Run method)
+│   ├── Register → returns to UnauthenticatedMenu
+│   └── Login → SessionUser populated → MainMenu enters AuthenticatedMenu
+└── AuthenticatedMenu (BaseMenu)
+    ├── PostMenu (BaseMenu)
+    ├── FriendMenu (BaseMenu) — also receives PostMenu via DI for profile post interaction
+    └── MessageMenu (BaseMenu)
+```
+
+### BaseMenu
+
+All authenticated menus inherit `BaseMenu`. `MainMenu` does not.
+
+- `_sessionUser` is on the base — every authenticated menu needs it to pass `_sessionUser.Id` to services.
+- `Run()` is `virtual` — `UnauthenticatedMenu` overrides it; all other subclasses use the base implementation.
+- `Run()` returns `Task<bool>` — always `false` for authenticated menus; `UnauthenticatedMenu` returns `true` only when the user explicitly chooses Exit.
+- `OnBack()` is a virtual hook — `AuthenticatedMenu` overrides it to clear `SessionUser` on logout.
+- `OnEnter()` is a virtual hook — `AuthenticatedMenu` overrides it to call `base.OnEnter()` then check for unread messages.
+- `BackLabel` defaults to `"Back"` — `AuthenticatedMenu` overrides it to `"Log Out"`.
+
+### AuthenticatedMenu
+
+```csharp
+protected override string Title => $"Welcome, {_sessionUser.Username}";
+protected override string BackLabel => "Log Out";
+protected override List<string> MenuOptions => ["Posts", "Friends", "Messages"];
+
+protected override async Task OnEnter()
+{
+    await base.OnEnter();
+    bool hasUnread = await _messageService.HasUnreadAsync(_sessionUser.Id);
+    if (hasUnread) Console.WriteLine("You have unread messages.");
+}
+
+protected override void OnBack()
+{
+    _sessionUser.Id = 0;
+    _sessionUser.Username = string.Empty;
+    Console.WriteLine("Logged out.");
+}
+```
+
+### UnauthenticatedMenu
+
+Does not inherit `BaseMenu` — shares the same structural pattern but overrides `Run()` to return `true` on Exit and to exit the loop on successful login.
+
+### MainMenu
+
+```csharp
+public async Task Run()
+{
+    bool running = true;
+    while (running)
+    {
+        if (_sessionUser.IsLoggedIn)
+        {
+            await _authenticatedMenu.Run();
+        }
+        else
+        {
+            bool exit = await _unauthenticatedMenu.Run();
+            if (exit) running = false;
+        }
+    }
+}
+```
+
+### PostMenu
+
+Options: Create post, View feed, My posts.
+
+Post selection from any list shows actions: View comments, Add comment, Delete post (own posts only). `PostMenu` exposes `AddCommentAsync` and `ViewCommentsAsync` as `public` methods so `FriendMenu` can reuse them when viewing a user profile.
+
+### FriendMenu
+
+Options: View friends, Pending requests, Sent requests, Find users, Remove friend.
+
+Receives `PostMenu` via DI constructor injection for profile post interaction. When viewing a user profile, calls `PostMenu.ViewCommentsAsync` and `PostMenu.AddCommentAsync` directly.
+
+User search: prompts for a query string, calls `AccountService.SearchUsersAsync`, displays results as a numbered list. Selecting a user shows their profile (username, bio) and recent posts. From the profile, the user can send a friend request — `FriendshipService.SendRequestAsync` returns the appropriate message if a request is already pending or an accepted friendship exists.
+
+Relationship status is not shown in the user list — feedback comes from the service on attempt.
+
+### MessageMenu
+
+Options: Send message, View conversation.
+
+Both actions first display the friends list for selection. `ViewConversation` paginates using `Constraints.ConversationPageSize`.
 
 ---
 
@@ -409,6 +601,8 @@ services.AddScoped<CommentService>();
 services.AddScoped<FriendshipService>();
 services.AddScoped<MessageService>();
 
+services.AddScoped<SessionUser>();
+
 services.AddScoped<MainMenu>();
 services.AddScoped<UnauthenticatedMenu>();
 services.AddScoped<AuthenticatedMenu>();
@@ -416,12 +610,10 @@ services.AddScoped<PostMenu>();
 services.AddScoped<FriendMenu>();
 services.AddScoped<MessageMenu>();
 
-serivces.AddScoped<SessionUser>();
-
 var provider = services.BuildServiceProvider();
 
 var mainMenu = provider.GetRequiredService<MainMenu>();
-mainMenu.Run();
+await mainMenu.Run();
 ```
 
 ---
@@ -444,40 +636,21 @@ mainMenu.Run();
 - `UpdateStatusAsync` on `FriendshipRepository` takes the already-fetched `Friendship` entity — avoids a redundant DB fetch since the entity is always in the change tracker at the call site
 - `FriendshipRepository.ExistsAsync(int, int, FriendshipStatus?)` — nullable status parameter; when provided, filtered; operator precedence guarded by grouping: `(!status.HasValue || friendship.FriendshipStatus == status)`
 - `HasUnreadAsync` returns `bool` directly — no failure state possible, `Response` wrapper unnecessary
+- `AccountService.SearchUsersAsync` returns `List<DisplayUserDto>` directly — no failure state possible, `Response` wrapper unnecessary
 - Empty collection results from read operations are `Ok`, not `Fail` — zero results is a valid state; menus handle the "no results" display
 - `DisplayPostDto.Comments` is nullable — `null` means not fetched; empty list means fetched with no results
 - Mappers are pure property assignments — no injected dependencies, no logic
 - `PostMapper.ToDisplay` has two overloads — one without comments, one with `List<DisplayCommentDto>`; menu decides which to use based on context
 - No early returns — a single `return` at the end of every method; branching via `if/else`; `Response` declared at the top, mutated through logic, returned once at the end
 - Internal IDs never rendered in console output; used only for operation handling after user selection
+- `Printer` is static — no state, no dependencies, pure console output; `PrintList<T>` extracts the for-loop; typed print methods are passed as method groups
+- `Prompter` is static — no state, no dependencies; loops infinitely until valid input; format validation only, no business validation
+- `Constraints` constants are referenced in both check constraints (via string interpolation at migration time) and menu-level validation — single source of truth
+- `PasswordHash` and `PasswordSalt` use `IsFixedLength().HasMaxLength(44)` — PBKDF2 32-byte output encodes to exactly 44 Base64 characters
+- `BaseMenu` holds `_sessionUser` — every authenticated menu needs it; avoids repeating the constructor parameter across all subclasses
+- `BaseMenu.Run()` is `virtual` — only `UnauthenticatedMenu` overrides it; all authenticated menus use the base loop unchanged
+- `PostMenu` exposes public methods for comment interaction — `FriendMenu` injects `PostMenu` via DI rather than duplicating the logic
 
----
-## Menu Structure
-
-`MainMenu` is the top-level controller. It owns the outer loop and decides whether to show `UnauthenticatedMenu` or `AuthenticatedMenu` based on whether `SessionUser` is populated.
-
-```
-MainMenu (outer loop)
-├── UnauthenticatedMenu
-│   ├── Register → returns to UnauthenticatedMenu on failure or success
-│   └── Login → on success, MainMenu enters AuthenticatedMenu
-└── AuthenticatedMenu
-    ├── PostMenu
-    ├── FriendMenu
-    └── MessageMenu
-```
-
-Each menu has a `Run()` method with an internal loop. The loop displays options, reads input, and handles selection. It exits only when the user selects "back" or the equivalent. When `AuthenticatedMenu` calls `_postMenu.Show()`, it waits for `PostMenu` to return before resuming its own loop.
-
-Logout lives in `AuthenticatedMenu`. It clears `SessionUser` properties and breaks the authenticated loop. `MainMenu` sees the session is empty and re-enters `UnauthenticatedMenu`.
-
-### Menu Implementation Order
-
-1. `UnauthenticatedMenu` — Register, Login
-2. `MainMenu` — entry point, routes based on session state
-3. `PostMenu` — create post, view feed, delete post, view comments
-4. `FriendMenu` — send request, view pending/sent requests, accept/decline, view friends, remove friend
-5. `MessageMenu` — send message, view conversation
 ---
 
 ## Implementation Steps
@@ -492,5 +665,8 @@ Logout lives in `AuthenticatedMenu`. It clears `SessionUser` properties and brea
 8. [x] `Response<T>`
 9. [x] Mappers
 10. [x] Services
-11. [ ] Menus
-12. [ ] Wire DI in `Program.cs`
+11. [ ] `Constraints`, `Printer`, `Prompter` - implementing along the way
+12. [x] `BaseMenu`
+13. [x] `UnauthenticatedMenu`, `MainMenu`, `AuthenticatedMenu`
+14. [ ], `PostMenu`, `FriendMenu`, `MessageMenu`
+15. [x] Wire DI in `Program.cs`

@@ -60,12 +60,12 @@ public class AuthenticatedMenu : BaseMenu
 
     protected override async Task OnEnter()
     {
-        Console.Write(Title);
+        await base.OnEnter();
 
         var hasUnread = await _messageService.HasUnreadAsync(_sessionUser.UserId);
         if (hasUnread)
         {
-            Console.WriteLine(" You have unread messages");
+            Console.WriteLine("You have unread messages");
         }
     }
 

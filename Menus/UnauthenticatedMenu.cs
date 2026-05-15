@@ -26,12 +26,11 @@ public class UnauthenticatedMenu : BaseMenu
     
     public override async Task<bool> Run()
     {
-        await OnEnter();
-        bool run     = true;
+        bool run = true;
 
         while (run)
         {
-            Console.Clear();
+            await OnEnter();
             
             Printer.PrintLines(MenuOptions, BackLabel);
             int choice = Prompter.GetIntInput("", 0, MenuOptions.Count);
