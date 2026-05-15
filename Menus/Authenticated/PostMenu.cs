@@ -1,30 +1,40 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
+using social_media_console_app.Menus.Base;
 
 namespace social_media_console_app.Menus.Authenticated;
 
-public class PostMenu
+public class PostMenu : BaseMenu
 {
-    private readonly SessionUser _sessionUser;
-    
     private readonly PostService    _postService;
     private readonly CommentService _commentService;
 
-    private const int pageSize = 10;
+    protected override string Title => "Posts";
+    protected override List<string> MenuOptions { get; } =
+    [
+    ];
+    
+    private const int PageSize = 10;
 
     public PostMenu(
-        SessionUser sessionUser,
-        PostService postService,
-        CommentService commentService)
+        SessionUser    sessionUser,
+        PostService    postService,
+        CommentService commentService) : base(sessionUser)
     {
-        _sessionUser = sessionUser;
-
         _postService = postService;
         _commentService = commentService;
     }
 
-    public async Task Run()
+
+    
+    protected override Task CompleteOperation(int choice)
     {
-        
+        throw new NotImplementedException();
     }
+
+    protected override void OnBack()
+    {
+        throw new NotImplementedException();
+    }
+
 }

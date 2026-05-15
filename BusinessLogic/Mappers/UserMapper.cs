@@ -21,7 +21,7 @@ public class UserMapper
 
     public DisplayUserDto ToDisplay(User user)
     {
-        return new DisplayUserDto(user.Username, user.Bio, user.CreatedAt, user.DateOfBirth);
+        return new DisplayUserDto(user.Id, user.Username, user.Bio, user.CreatedAt, user.DateOfBirth);
     }
 
     public SessionUser ToSessionUser(User user)

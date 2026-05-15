@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using social_media_console_app.Constants;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -13,11 +14,11 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 
         builder.Property(post => post.PostTitle)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(Constraints.PostTitleMaxLength);
         
         builder.Property(post => post.PostContent)
             .IsRequired()
-            .HasMaxLength(3000);
+            .HasMaxLength(Constraints.PostContentMaxLength);
 
         builder.HasOne(post => post.User)
             .WithMany(user => user.Posts)

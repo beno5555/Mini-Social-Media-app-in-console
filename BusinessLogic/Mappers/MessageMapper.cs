@@ -19,6 +19,7 @@ public class MessageMapper : IMapper<Message, CreateMessageDto, DisplayMessageDt
     public DisplayMessageDto ToDisplay(Message message)
     {
         return new DisplayMessageDto(
+            message.Id,
             message.MessageContent,
             message.SenderUser!.Username,
             message.CreatedAt,

@@ -2,4 +2,4 @@
 
 namespace social_media_console_app.BusinessLogic.Dtos.PostDtos;
 
-public record DisplayPostDto(string AuthorUsername, string Title, string Content, DateTime UploadedAt, List<DisplayCommentDto>? Comments = null);
+public record DisplayPostDto(int Id, string AuthorUsername, string Title, string Content, DateTime UploadedAt, List<DisplayCommentDto>? Comments = null);

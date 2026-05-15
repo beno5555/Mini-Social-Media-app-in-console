@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using social_media_console_app.Constants;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -13,7 +14,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
 
         builder.Property(message => message.MessageContent)
             .IsRequired()
-            .HasMaxLength(1000);
+            .HasMaxLength(Constraints.MessageMaxLength);
 
         builder.HasOne(message => message.SenderUser)
             .WithMany(senderUser => senderUser.SentMessages)

@@ -1,3 +1,3 @@
 ﻿namespace social_media_console_app.BusinessLogic.Dtos.UserDtos;
 
-public record DisplayUserDto(string Username, string? Bio, DateTime CreatedAt, DateTime DateOfBirth);
+public record DisplayUserDto(int Id, string Username, string? Bio, DateTime CreatedAt, DateTime DateOfBirth);

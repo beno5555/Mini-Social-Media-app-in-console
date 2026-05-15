@@ -18,6 +18,6 @@ public class CommentMapper : IMapper<Comment, CreateCommentDto, DisplayCommentDt
 
     public DisplayCommentDto ToDisplay(Comment comment)
     {
-        return new DisplayCommentDto(comment.CommenterUser!.Username, comment.CommentContent, comment.CreatedAt);
+        return new DisplayCommentDto(comment.Id, comment.CommenterUser!.Username, comment.CommentContent, comment.CreatedAt);
     }
 }

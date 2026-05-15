@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using social_media_console_app.Constants;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -14,11 +15,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.Username)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(Constraints.UsernameMaxlength);
         
         builder.Property(user => user.Email)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(Constraints.EmailMaxLength);
 
         builder.Property(user => user.DateOfBirth)
             .IsRequired();
@@ -28,13 +29,16 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.PasswordHash)
             .IsRequired()
-            .HasMaxLength(100);
+            .IsFixedLength()
+            .HasMaxLength(Constraints.PasswordHashMaxLength);
         
         builder.Property(user => user.PasswordSalt)
             .IsRequired()
-            .HasMaxLength(100);
+            .IsFixedLength()
+            .HasMaxLength(Constraints.PasswordSaltMaxLength);
 
-        builder.Property(user => user.Bio).HasMaxLength(500);
+        builder.Property(user => user.Bio)
+            .HasMaxLength(Constraints.BioMaxLength);
 
         builder.HasData(
             new User()

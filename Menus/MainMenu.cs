@@ -25,9 +25,9 @@ public class MainMenu
         {
             if (!_sessionUser.IsLoggedIn)
             {
-                var choice = await _unauthenticatedMenu.Run();
+                var exit = await _unauthenticatedMenu.Run();
                 
-                if (choice == UnauthenticatedMenuChoice.Exit)
+                if (exit)
                 {
                     run = false;
                 }

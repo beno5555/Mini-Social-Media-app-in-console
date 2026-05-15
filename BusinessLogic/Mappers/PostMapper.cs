@@ -20,11 +20,11 @@ public class PostMapper : IMapper<Post, CreatePostDto, DisplayPostDto>
 
     public DisplayPostDto ToDisplay(Post post)
     {
-        return new DisplayPostDto(post.User!.Username, post.PostTitle, post.PostContent, post.CreatedAt);
+        return new DisplayPostDto(post.Id, post.User!.Username, post.PostTitle, post.PostContent, post.CreatedAt);
     }
 
     public DisplayPostDto ToDisplay(Post post, List<DisplayCommentDto> commentDtos)
     {
-        return new DisplayPostDto(post.User!.Username, post.PostTitle, post.PostContent, post.CreatedAt, commentDtos);
+        return new DisplayPostDto(post.Id, post.User!.Username, post.PostTitle, post.PostContent, post.CreatedAt, commentDtos);
     }
 }

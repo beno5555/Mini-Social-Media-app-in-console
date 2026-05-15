@@ -32,6 +32,9 @@ services.AddScoped<AuthService>();
 
 services.AddScoped<SessionUser>();
 
+services.AddScoped<MessageMenu>();
+services.AddScoped<FriendMenu>();
+services.AddScoped<PostMenu>();
 services.AddScoped<AuthenticatedMenu>();
 services.AddScoped<UnauthenticatedMenu>();
 services.AddScoped<MainMenu>();

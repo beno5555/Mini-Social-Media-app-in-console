@@ -58,6 +58,16 @@ public class UserRepository : BaseEntityRepository<User>
             .FirstOrDefaultAsync(predicate);
     }
 
+    public async Task<List<User>> GetUsersAsync(int excludedUserId, int? pageNumber, int? pageSize)
+    {
+        return await GetWhereAsync(user => user.Id != excludedUserId, pageNumber, pageSize);
+    }
+
+    public async Task<List<User>> SearchByUsernameAsync(string usernameInput, int? pageNumber, int? pageSize)
+    {
+        return await GetWhereAsync(user => user.Username.Contains(usernameInput), pageNumber, pageSize);
+    }
+
 
     /// <summary>
     /// messages and friends aren't loaded from users.

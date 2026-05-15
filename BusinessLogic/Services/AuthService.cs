@@ -45,7 +45,7 @@ public class AuthService
         }
         else 
         {
-            registerResponse.Fail($"Email is already taken");
+            registerResponse.Fail("Email is already taken");
         }
 
         return registerResponse;
