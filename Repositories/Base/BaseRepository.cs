@@ -48,6 +48,11 @@ public class BaseRepository<T> where T : class
         return await query.ToListAsync();
     }
 
+    protected async Task DeleteWhereAsync(Expression<Func<T, bool>> predicate)
+    {
+        await Query().Where(predicate).ExecuteDeleteAsync();
+    }
+
     public async Task AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);

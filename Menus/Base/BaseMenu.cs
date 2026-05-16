@@ -27,10 +27,10 @@ public abstract class BaseMenu
 
     protected abstract Task CompleteOperation(int choice);
 
-    protected virtual Task OnEnter()
+    protected virtual Task OnEnter(string? currentMenuMessage = null)
     {
         Console.Clear();
-        Console.WriteLine(Title);
+        Console.WriteLine(currentMenuMessage ?? Title);
         
         return Task.CompletedTask;
     }
@@ -43,8 +43,9 @@ public abstract class BaseMenu
     protected async Task<T?> PaginateAsync<T>(
         Func<int, int, Task<List<T>>> fetchPage,
         Action<T, int>                printItem,
-        int                           pageSize
-    )
+        int                           pageSize,
+        string? sectionTitle = null,
+        bool shouldSelectItem = true)
     {
         int  pageNumber  = 1;
         bool run   = true;
@@ -52,7 +53,7 @@ public abstract class BaseMenu
 
         while (run)
         {
-            await OnEnter();
+            await OnEnter(sectionTitle);
             Console.WriteLine($"Page - {pageNumber}");
             
             if (!cache.TryGetValue(pageNumber, out var items))
@@ -66,7 +67,7 @@ public abstract class BaseMenu
             bool hasPrevious = pageNumber > 1;
             bool hasNext     = pageSize == items.Count; // there is a chance that pageSize and last few items count matched and this boolean value is misleading
 
-            PaginatedInput input = Prompter.GetPaginatedInput(items.Count, hasPrevious, hasNext);
+            PaginatedInput input = Prompter.GetPaginatedInput(shouldSelectItem ? items.Count : 0, hasPrevious, hasNext);
 
             switch (input.Type)
             {
@@ -88,17 +89,23 @@ public abstract class BaseMenu
     }
     protected async Task BrowseAndSelectAsync<T>(
         Func<int, int, Task<List<T>>> fetchPage,
-        Action<T, int> printItem,
-        int pageSize,
-        Func<T, Task> onSelect)
+        Action<T, int>                printItem,
+        int                           pageSize,
+        Func<T, Task>?                onSelect             = null,
+        string?                       sectionTitle         = null,
+        string?                       selectedSectionTitle = null
+        )
     {
         T? selectedItem;
         do
         {
-            selectedItem = await PaginateAsync(fetchPage, printItem, pageSize);
+            bool shouldSelectItem = onSelect is not null;
+            selectedItem = await PaginateAsync(fetchPage, printItem, pageSize, sectionTitle, shouldSelectItem);
+            
             if (selectedItem is not null)
             {
-                await onSelect(selectedItem);
+                await OnEnter(selectedSectionTitle);
+                await onSelect!(selectedItem);
                 ConsoleUtilities.ResetMenu();
             }
         } while (selectedItem is not null);
@@ -106,6 +113,16 @@ public abstract class BaseMenu
         Console.WriteLine("Routing back...");
         Thread.Sleep(Constraints.MenuBackTrackDelayInMilliseconds);
     }
+    protected async Task ConfirmAction(string prompt, Func<Task> action)
+    {
+        bool wantsToProceed = Prompter.DoubleCheckIntent(prompt);
+
+        if (wantsToProceed)
+        {
+            await action();
+        }
+    }
+    
 
     /// <returns>a boolean to indicate whether a program should exit or not. (Used for UnauthenticatedMenu)</returns>
     public virtual async Task<bool> Run()

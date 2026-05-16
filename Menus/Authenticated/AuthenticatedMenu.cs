@@ -59,9 +59,9 @@ public class AuthenticatedMenu : BaseMenu
         }
     }
 
-    protected override async Task OnEnter()
+    protected override async Task OnEnter(string? currentMenuMessage = null)
     {
-        await base.OnEnter();
+        await base.OnEnter(currentMenuMessage);
 
         var hasUnread = await _messageService.HasUnreadAsync(_sessionUser.UserId);
         if (hasUnread)

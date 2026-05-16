@@ -33,6 +33,12 @@ public class MessageRepository : BaseEntityRepository<Message>
             pageNumber, pageSize);
     }
 
+    public async Task DeleteUserMessagesAsync(int userId)
+    {
+        await DeleteWhereAsync(message => message.SenderUserId   == userId ||
+                                          message.ReceiverUserId == userId);
+    }
+
     public async Task<List<Message>> GetUnreadAsync(int senderId, int receiverId)
     {
         return await GetWhereAsync(message =>

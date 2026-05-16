@@ -19,12 +19,12 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.HasOne(comment => comment.CommenterUser)
             .WithMany(user => user.Comments)
             .HasForeignKey(comment => comment.CommenterUserId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(comment => comment.Post)
             .WithMany(post => post.Comments)
             .HasForeignKey(comment => comment.PostId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new Comment

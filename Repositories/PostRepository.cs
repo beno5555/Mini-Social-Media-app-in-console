@@ -29,8 +29,7 @@ public class PostRepository : BaseEntityRepository<Post>
     protected override IQueryable<Post> Query(bool track = true)
     {
         var query = _dbSet
-            .Include(post => post.User)
-            .Include(post => post.Comments);
+            .Include(post => post.User);
 
         return track ? query : query.AsNoTracking();
     }

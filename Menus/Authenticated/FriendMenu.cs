@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using ProjectHelperLibrary.Utilities;
+﻿using ProjectHelperLibrary.Utilities;
 using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Dtos.UserDtos;
 using social_media_console_app.BusinessLogic.Mappers;
@@ -15,8 +14,6 @@ public class FriendMenu : BaseMenu
 {
     private readonly FriendshipService _friendshipService;
     private readonly AccountService    _accountService;
-    
-    private readonly UserMapper  _userMapper;
 
     protected override string Title => "Friends";
 
@@ -32,14 +29,11 @@ public class FriendMenu : BaseMenu
     public FriendMenu(
         FriendshipService friendshipService,
         AccountService    accountService,
-        UserMapper        userMapper,
         SessionUser       sessionUser
     ) : base (sessionUser)
     {
         _friendshipService = friendshipService;
         _accountService = accountService;
-        
-        _userMapper = userMapper;
     }
 
 
@@ -72,13 +66,15 @@ public class FriendMenu : BaseMenu
 
     private async Task ViewFriendsAsync()
     {
-        await BrowseAndSelectAsync<DisplayUserDto>(async (pageNumber, pageSize) =>
-            {
-                return await _friendshipService.GetFriendsAsync(_sessionUser.UserId, pageNumber, pageSize);
-            },
+        async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
+            await _friendshipService.GetFriendsAsync(_sessionUser.UserId, pageNumber, pageSize);
+        
+        await BrowseAndSelectAsync(
+            FetchPage,
             Printer.PrintUser,
             Constraints.DefaultPageSize,
-            ViewFriendProfileAsync);
+            ViewFriendProfileAsync,
+            sectionTitle: "Friends");
     }
 
     
@@ -97,7 +93,7 @@ public class FriendMenu : BaseMenu
         
         if (choice == 1)
         {
-            await ConfirmDeleteFriendAsync(friend);
+            await RemoveFriendAsync(friend);
         }
     }
     
@@ -107,11 +103,15 @@ public class FriendMenu : BaseMenu
     
     private async Task ViewPendingRequestsAsync()
     {
-        await BrowseAndSelectAsync(async (pageNumbe, pageSize) =>
-                await _friendshipService.GetPendingRequestsAsync(_sessionUser.UserId, pageNumbe, pageSize),
+        async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
+            await _friendshipService.GetPendingRequestsAsync(_sessionUser.UserId, pageNumber, pageSize);
+            
+        await BrowseAndSelectAsync(
+            FetchPage,
             Printer.PrintUser,
             Constraints.DefaultPageSize,
-            RespondToRequestAsync);
+            RespondToRequestAsync,
+            sectionTitle: "Pending Requests");
     }
 
     private async Task RespondToRequestAsync(DisplayUserDto requesterUser)
@@ -151,11 +151,15 @@ public class FriendMenu : BaseMenu
     
     private async Task ViewSentRequestsAsync()
     {
-        await BrowseAndSelectAsync(async (pageNumber, pageSize) =>
-            await _friendshipService.GetSentRequestsAsync(_sessionUser.UserId, pageNumber, pageSize),
+        async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
+            await _friendshipService.GetSentRequestsAsync(_sessionUser.UserId, pageNumber, pageSize);
+        
+        await BrowseAndSelectAsync(
+            FetchPage,
             Printer.PrintUser,
             Constraints.DefaultPageSize,
-            CancelRequestAsync
+            CancelRequestAsync,
+            sectionTitle: "Sent Requests"
         );
     }
 
@@ -193,11 +197,15 @@ public class FriendMenu : BaseMenu
     {
         string usernameQuery = Prompter.GetStringInput("Search username", 1, Constraints.UsernameMaxlength);
 
+        async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
+            await _accountService.SearchUsersAsync(usernameQuery, pageNumber, pageSize);
+
         await BrowseAndSelectAsync(
-            async (pageNumber, pageSize) => await _accountService.SearchUsersAsync(usernameQuery, pageNumber, pageSize),
+            FetchPage,
             Printer.PrintUser,
             Constraints.DefaultPageSize,
-            ViewSearchedUserProfileAsync
+            ViewSearchedUserProfileAsync,
+            $"Search results for '{usernameQuery}'"
         );
 
     }
@@ -235,19 +243,21 @@ public class FriendMenu : BaseMenu
     #region Remove a friend
     private async Task RemoveFriendAsync()
     {
+        async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
+            await _friendshipService.GetFriendsAsync(_sessionUser.UserId, pageNumber, pageSize);
+        
         await BrowseAndSelectAsync(
-            async (pageNumber, pageSize) => await _friendshipService.GetFriendsAsync(_sessionUser.UserId, pageNumber, pageSize),
+            FetchPage,
             Printer.PrintUser,
             Constraints.DefaultPageSize,
-            ConfirmDeleteFriendAsync
+            RemoveFriendAsync,
+            "Remove user from friends"
         );
     }
 
-    private async Task ConfirmDeleteFriendAsync(DisplayUserDto friend)
+    private async Task RemoveFriendAsync(DisplayUserDto friend)
     {
-        bool wantsToDelete = Prompter.DoubleCheckIntent($"Are you sure you want to remove '{friend.Username}' from friends?");
-
-        if (wantsToDelete)
+        await ConfirmAction($"Are you sure you want to remove '{friend.Username}' from friends?", async () =>
         {
             var deleteResponse = await _friendshipService.RemoveRelationshipAsync(_sessionUser.UserId, friend.Id); if (deleteResponse.Success)
             {
@@ -257,10 +267,8 @@ public class FriendMenu : BaseMenu
             {
                 Console.WriteLine("Could not delete user from friends list. " + deleteResponse.Message);
             }
-        }
+        });
     }
     
     #endregion
-    
-
 }

@@ -93,4 +93,10 @@ public class FriendshipRepository : BaseRepository<Friendship>
         friendship.FriendshipStatus = status;
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task DeleteUserFriendshipsAsync(int userId)
+    {
+        await DeleteWhereAsync(friendship => friendship.RequesterUserId == userId ||
+                                             friendship.AddresseeUserId == userId);
+    }
 }

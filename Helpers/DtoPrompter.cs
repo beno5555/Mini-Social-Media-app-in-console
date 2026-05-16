@@ -1,4 +1,7 @@
-﻿using social_media_console_app.BusinessLogic.Dtos.UserDtos;
+﻿using Azure.Core;
+using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
+using social_media_console_app.BusinessLogic.Dtos.PostDtos;
+using social_media_console_app.BusinessLogic.Dtos.UserDtos;
 using social_media_console_app.Constants;
 
 namespace social_media_console_app.Helpers;
@@ -16,7 +19,7 @@ public static class DtoPrompter
 
         string? bio = Prompter.GetOptionalStringInput("Bio", 0, Constraints.BioMaxLength);
 
-        DateTime dob = Prompter.GetDateInput("Date of birth: ", Constraints.MinAge, Constraints.MaxAge);
+        DateTime dob = Prompter.GetDateInput("Date of birth", Constraints.MinAge, Constraints.MaxAge);
 
         var registerDto = new RegisterDto(username, email, password, bio, dob);
 
@@ -31,5 +34,22 @@ public static class DtoPrompter
 
         var loginDto = new LoginDto(uniqueIdentifier, password);
         return loginDto;
+    }
+
+    public static CreateCommentDto NewComment(int commenterId, int postId)
+    {
+        string content          = Prompter.GetStringInput("Write a comment", 1, Constraints.CommentMaxLength);
+        var    createCommentDto = new CreateCommentDto(content, commenterId, postId);
+        
+        return createCommentDto;
+    }
+
+    public static CreatePostDto CreatePost(int creatorId)
+    {
+        string title   = Prompter.GetStringInput("Title",   1, Constraints.PostTitleMaxLength);
+        string content = Prompter.GetStringInput("Content", 1, Constraints.PostContentMaxLength);
+
+        var createPostDto = new CreatePostDto(creatorId, title, content);
+        return createPostDto;
     }
 }

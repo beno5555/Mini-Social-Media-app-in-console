@@ -14,7 +14,7 @@ public static class Prompter
         var validation = new DataResponse<int>(false, 0, string.Empty);
         do
         {
-            Console.WriteLine(prompt);
+            Console.Write(prompt);
             
             if (int.TryParse(Console.ReadLine(), out int result))
             {
@@ -66,7 +66,7 @@ public static class Prompter
                     return PaginatedInput.BackToMenu();
                 }
                    
-                Console.WriteLine($"Input during selection should be in range: (1-{itemCount})");
+                Console.WriteLine($"Input during selection should be in range: (0-{itemCount})");
             }
             else if (input.Equals("p") && hasPrevious)
             {

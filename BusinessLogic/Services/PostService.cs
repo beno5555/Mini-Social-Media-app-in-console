@@ -11,13 +11,15 @@ public class PostService
     private readonly PostRepository       _postRepository;
     private readonly FriendshipRepository _friendshipRepository;
     private readonly UserRepository       _userRepository;
+    private readonly CommentRepository    _commentRepository;
     private readonly PostMapper           _postMapper;
 
-    public PostService(PostRepository postRepository, FriendshipRepository friendshipRepository, UserRepository userRepository, PostMapper postMapper)
+    public PostService(PostRepository postRepository, FriendshipRepository friendshipRepository, UserRepository userRepository, CommentRepository commentRepository, PostMapper postMapper)
     {
         _postRepository = postRepository;
         _friendshipRepository = friendshipRepository;
         _userRepository = userRepository;
+        _commentRepository = commentRepository;
         _postMapper = postMapper;
     }
 
@@ -51,43 +53,16 @@ public class PostService
         return response;
     }
 
-    public async Task<Response<List<DisplayPostDto>>> GetFeedAsync(int userId, int? pageNumber, int? pageSize)
+    public async Task<List<DisplayPostDto>> GetFeedAsync(int userId, int? pageNumber, int? pageSize)
     {
-        var response = new Response<List<DisplayPostDto>>();
+        var friends = await _friendshipRepository.GetFriendshipsAsync(userId);
+        List<int> friendIds = friends.Select(friend =>
+            friend.RequesterUserId == userId ? friend.AddresseeUserId : friend.RequesterUserId).ToList();
 
-        var userExists = await _userRepository.ExistsByIdAsync(userId);
+        var posts = await _postRepository.GetFeedAsync(friendIds, pageNumber, pageSize);
+        var postDtos = posts.Select(_postMapper.ToDisplay).ToList();
 
-        if (userExists)
-        {
-            var friends = await _friendshipRepository.GetFriendshipsAsync(userId);
-
-            if (friends.Count > 0)
-            {
-                List<int> friendIds = friends.Select(friend =>
-                    friend.RequesterUserId == userId ? friend.AddresseeUserId : friend.RequesterUserId).ToList();
-                var posts = await _postRepository.GetFeedAsync(friendIds, pageNumber, pageSize);
-
-                if (posts.Count > 0)
-                {
-                    var postDtos = posts.Select(_postMapper.ToDisplay).ToList();
-                    response.Ok(postDtos);
-                }
-                else
-                {
-                    response.Fail("You're all caught up");
-                }
-            }
-            else
-            {
-                response.Fail("You do not have any friends");
-            }
-        }
-        else
-        {
-            response.Fail("Invalid user id");
-        }
-
-        return response;
+        return postDtos;
     }
 
     public async Task<Response<List<DisplayPostDto>>> GetByUserIdAsync(int userId, int? pageNumber, int? pageSize)
@@ -118,13 +93,14 @@ public class PostService
         return  response;
     }
 
-    public async Task<Response> DeleteAsync(int postId)
+    public async Task<Response> DeletePostAsync(int postId)
     {
         var response = new Response();
         var post     = await _postRepository.GetByIdAsync(postId);
 
         if (post is not null)
         {
+            await _commentRepository.DeletePostCommentsAsync(post.Id);
             await _postRepository.DeleteAsync(post);
         }
         else

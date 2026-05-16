@@ -8,12 +8,18 @@ namespace social_media_console_app.BusinessLogic.Services;
 
 public class AccountService
 {
-    private readonly UserRepository _userRepository;
-    private readonly UserMapper _userMapper;
+    private readonly UserRepository       _userRepository;
+    private readonly MessageRepository    _messageRepository;
+    private readonly FriendshipRepository _friendshipRepository;
+    private readonly CommentRepository _commentRepository;
+    private readonly UserMapper           _userMapper;
 
-    public AccountService(UserRepository userRepository, UserMapper userMapper)
+    public AccountService(UserRepository userRepository, MessageRepository messageRepository, FriendshipRepository friendshipRepository, CommentRepository commentRepository, UserMapper userMapper)
     {
         _userRepository = userRepository;
+        _messageRepository = messageRepository;
+        _friendshipRepository = friendshipRepository;
+        _commentRepository = commentRepository;
         _userMapper = userMapper;
     }
 
@@ -25,10 +31,23 @@ public class AccountService
 
         if (userToDelete is not null)
         {
+            await DeleteUserRelatedData(userToDelete.Id);
             await _userRepository.DeleteAsync(userToDelete);
+        }
+        else
+        {
+            response.Fail("User not found.");
         }
 
         return response;
+    }
+
+    // Assumes valid userId
+    private async Task DeleteUserRelatedData(int userId)
+    {
+        await _commentRepository.DeleteUserCommentsAsync(userId);
+        await _messageRepository.DeleteUserMessagesAsync(userId);
+        await _friendshipRepository.DeleteUserFriendshipsAsync(userId);
     }
 
     public async Task<List<DisplayUserDto>> GetUsersAsync(int currentUserId, int? pageNumber, int? pageSize)

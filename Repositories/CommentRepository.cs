@@ -22,6 +22,16 @@ public class CommentRepository : BaseEntityRepository<Comment>
         return await GetWhereAsync(comment => comment.PostId == postId, pageNumber, pageSize);
     }
 
+    public async Task DeleteUserCommentsAsync(int userId)
+    {
+        await DeleteWhereAsync(comment => comment.CommenterUserId == userId);
+    }
+
+    public async Task DeletePostCommentsAsync(int postId)
+    {
+        await DeleteWhereAsync(comment => comment.PostId == postId);
+    }
+
     protected override IQueryable<Comment> Query(bool track = true)
     {
         var query = _dbSet
