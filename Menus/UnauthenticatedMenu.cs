@@ -1,5 +1,6 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
+using social_media_console_app.Constants;
 using social_media_console_app.Helpers;
 using social_media_console_app.Menus.Base;
 
@@ -38,7 +39,7 @@ public class UnauthenticatedMenu : BaseMenu
             if (choice == ExitRoute)
             {
                 Console.WriteLine("Exiting..");
-                Thread.Sleep(1300);
+                Thread.Sleep(Constraints.MenuBackTrackDelayInMilliseconds);
                 _exitOnBack = true;
                 run = false;
             }
@@ -78,6 +79,8 @@ public class UnauthenticatedMenu : BaseMenu
     private async Task Register()
     {
         var registerDto = DtoPrompter.Register();
+
+        Console.WriteLine("Registering...");
         var response    = await _authService.RegisterAsync(registerDto);
         
         Console.WriteLine(response.Success ? "Registration Successful" : $"Registration failed. {response.Message}");
@@ -86,6 +89,8 @@ public class UnauthenticatedMenu : BaseMenu
     private async Task Login()
     {
         var loginDto = DtoPrompter.Login();
+
+        Console.WriteLine("Validating Credentials...");
         var response = await _authService.LoginAsync(loginDto);
         
         if (response.Success)

@@ -37,6 +37,18 @@ public class AccountService
         var userDtos = users
             .Select(_userMapper.ToDisplay)
             .ToList();
+        
+        return userDtos;
+    }
+
+    public async Task<List<DisplayUserDto>> SearchUsersAsync(string usernameInput, int? pageNumber = null,
+        int?                                                        pageSize = null)
+    {
+        var users = await _userRepository.SearchByUsernameAsync(usernameInput, pageNumber, pageSize);
+        var userDtos = users
+            .Select(_userMapper.ToDisplay)
+            .ToList();
+        
         return userDtos;
     }
 }

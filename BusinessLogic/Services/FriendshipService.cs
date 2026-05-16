@@ -103,7 +103,7 @@ public class FriendshipService
         return response;
     }
 
-    public async Task<Response> RemoveFriendAsync(int userId, int friendId)
+    public async Task<Response> RemoveRelationshipAsync(int userId, int friendId)
     {
         var response = new Response();
 
@@ -121,26 +121,24 @@ public class FriendshipService
         return response;
     }
 
-    public async Task<Response<List<DisplayUserDto>>> GetFriendsAsync(int userId, int? pageNumber, int? pageSize)
+    public async Task<List<DisplayUserDto>> GetFriendsAsync(int userId, int? pageNumber = null, int? pageSize = null)
     {
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetFriendshipsAsync, pageNumber, pageSize);
     }
 
-    public async Task<Response<List<DisplayUserDto>>> GetPendingRequestsAsync(int userId, int? pageNumber,
+    public async Task<List<DisplayUserDto>> GetPendingRequestsAsync(int userId, int? pageNumber,
         int?                                                                      pageSize)
     {
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetPendingRequestsAsync, pageNumber, pageSize);
     }
     
-    public async Task<Response<List<DisplayUserDto>>> GetSentRequestsAsync(int userId, int? pageNumber, int? pageSize)
+    public async Task<List<DisplayUserDto>> GetSentRequestsAsync(int userId, int? pageNumber, int? pageSize)
     {
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetSentRequestsAsync, pageNumber, pageSize);
     }
 
-    private async Task<Response<List<DisplayUserDto>>> FetchRelationshipsAsync(int userId, Func<int, int?, int?, Task<List<Friendship>>> getAsync, int? pageNumber, int? pageSize)
+    private async Task<List<DisplayUserDto>> FetchRelationshipsAsync(int userId, Func<int, int?, int?, Task<List<Friendship>>> getAsync, int? pageNumber, int? pageSize)
     {
-        var response = new Response<List<DisplayUserDto>>();
-
         var relationships = await getAsync(userId, pageNumber, pageSize);
 
         var friends = relationships
@@ -150,9 +148,8 @@ public class FriendshipService
             .ToList();
     
         var userDtos =  friends.Select(_userMapper.ToDisplay).ToList();
-        response.Ok(userDtos);
 
-        return response;
+        return userDtos;
     }
 
     public bool ValidRequestResponse(FriendshipStatus status) =>

@@ -21,10 +21,11 @@ public static class Constraints
     public const int MinAge = 13;
     public const int MaxAge = 130;
 
-    public const int DefaultPageSize      = 10;
+    public const int DefaultPageSize      = 3;
     public const int ConversationPageSize = 20;
     
     public const string EmailRegexPattern    = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
     public const string UsernameRegexPattern = "^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$";
 
+    public const int MenuBackTrackDelayInMilliseconds = 300;
 }

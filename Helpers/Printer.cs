@@ -12,7 +12,7 @@ public static class Printer
 {
     public static void PrintUser(DisplayUserDto user, int index)
     {
-        Console.WriteLine();
+        Console.WriteLine($"{index}. {user.Username}");
     }
 
     public static void PrintComment(DisplayCommentDto comment, int index)
@@ -65,5 +65,13 @@ public static class Printer
     {
         Console.WriteLine(index + ". " + message);
     }
-    
+
+    public static void PrintUserDetails(DisplayUserDto friend)
+    {
+        Console.WriteLine($"\nUsername: {friend.Username}");
+        Console.WriteLine($"Bio: {(string.IsNullOrEmpty(friend.Bio) ? "No bio" : friend.Bio)}");
+        Console.WriteLine($"Birthday: {friend.DateOfBirth:yyyy-MM-dd}");
+        Console.WriteLine($"Joined: {friend.CreatedAt:yyyy-MM-dd}");
+        
+    }
 }

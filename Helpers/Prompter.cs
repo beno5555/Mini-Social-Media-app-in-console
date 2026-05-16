@@ -1,12 +1,14 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using ProjectHelperLibrary.Response;
+using ProjectHelperLibrary.Utilities;
 using ProjectHelperLibrary.Validations;
 
 namespace social_media_console_app.Helpers;
 
 public static class Prompter
 {
+    #region Integer
     public static int GetIntInput(string prompt, int min, int max)
     {
         var validation = new DataResponse<int>(false, 0, string.Empty);
@@ -36,6 +38,53 @@ public static class Prompter
         return null;
     }
 
+    public static PaginatedInput GetPaginatedInput(int itemCount, bool hasPrevious, bool hasNext)
+    {
+        var hints = new List<string> { "0 -> back to menu" };
+        
+        if (hasPrevious) hints.Add("p -> previous page");
+        if (hasNext) hints.Add("n -> next page");
+        if (itemCount > 0) hints.Add($"(1-{itemCount}) -> select item");
+
+        do
+        {
+            Console.WriteLine(string.Join(" | ", hints));
+            string? input = Console.ReadLine()?.ToLower().Trim();
+
+            if (string.IsNullOrEmpty(input))
+            {
+                Console.WriteLine("Input cannot be empty");
+            }
+            else if (int.TryParse(input, out int index))
+            {
+                if (index >= 1 && index <= itemCount)
+                {
+                   return PaginatedInput.Item(index);
+                }
+                if (index == 0)
+                {
+                    return PaginatedInput.BackToMenu();
+                }
+                   
+                Console.WriteLine($"Input during selection should be in range: (1-{itemCount})");
+            }
+            else if (input.Equals("p") && hasPrevious)
+            {
+                return PaginatedInput.Previous();
+            }
+            else if (input.Equals("n") && hasNext)
+            {
+                return PaginatedInput.Next();
+            }
+            else
+            {
+                Console.WriteLine("Invalid input.");
+            }
+
+        } while (true);
+    }
+
+    #endregion
     public static string GetStringInput(string prompt, int min, int max, string? regexPattern = null)
     {
         do
@@ -138,5 +187,11 @@ public static class Prompter
 
         return result.Value;
     }
-    
+
+    public static bool DoubleCheckIntent(string prompt)
+    {
+        Console.Write(prompt + " (y/n): ");
+        var keyInfo = ConsoleUtilities.WaitForKey(ConsoleKey.Y, ConsoleKey.N);
+        return keyInfo.Key == ConsoleKey.Y;
+    }
 }
