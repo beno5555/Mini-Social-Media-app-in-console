@@ -38,7 +38,7 @@ namespace social_media_console_app.Migrations
                     b.Property<int>("CommenterUserId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("PostId")
@@ -63,7 +63,7 @@ namespace social_media_console_app.Migrations
                         });
                 });
 
-            modelBuilder.Entity("social_media_console_app.Models.Friendship", b =>
+            modelBuilder.Entity("social_media_console_app.Models.Friendships", b =>
                 {
                     b.Property<int>("RequesterUserId")
                         .HasColumnType("int");
@@ -71,7 +71,7 @@ namespace social_media_console_app.Migrations
                     b.Property<int>("AddresseeUserId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FriendshipStatus")
@@ -103,7 +103,7 @@ namespace social_media_console_app.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsRead")
@@ -148,7 +148,7 @@ namespace social_media_console_app.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PostContent")
@@ -193,7 +193,7 @@ namespace social_media_console_app.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("DateOfBirth")
@@ -278,7 +278,7 @@ namespace social_media_console_app.Migrations
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("social_media_console_app.Models.Friendship", b =>
+            modelBuilder.Entity("social_media_console_app.Models.Friendships", b =>
                 {
                     b.HasOne("social_media_console_app.Models.User", "AddresseeUser")
                         .WithMany("ReceivedFriendRequests")

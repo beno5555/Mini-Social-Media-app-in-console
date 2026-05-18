@@ -1,12 +1,10 @@
 ﻿using ProjectHelperLibrary.Utilities;
 using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Dtos.UserDtos;
-using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Services;
-using social_media_console_app.Constants;
-using social_media_console_app.Constants.Enums;
 using social_media_console_app.Helpers;
 using social_media_console_app.Menus.Base;
+using social_media_console_app.ProjectConstants.Enums;
 
 namespace social_media_console_app.Menus.Authenticated;
 
@@ -71,8 +69,8 @@ public class FriendMenu : BaseMenu
         
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintUser,
-            Constraints.DefaultPageSize,
+            Printer.PrintUserPreview,
+            ProjectConstants.Constants.DefaultPageSize,
             ViewFriendProfileAsync,
             sectionTitle: "Friends");
     }
@@ -104,12 +102,12 @@ public class FriendMenu : BaseMenu
     private async Task ViewPendingRequestsAsync()
     {
         async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
-            await _friendshipService.GetPendingRequestsAsync(_sessionUser.UserId, pageNumber, pageSize);
+            await _friendshipService.GetPendingRequestUsersAsync(_sessionUser.UserId, pageNumber, pageSize);
             
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintUser,
-            Constraints.DefaultPageSize,
+            Printer.PrintUserPreview,
+            ProjectConstants.Constants.DefaultPageSize,
             RespondToRequestAsync,
             sectionTitle: "Pending Requests");
     }
@@ -152,12 +150,12 @@ public class FriendMenu : BaseMenu
     private async Task ViewSentRequestsAsync()
     {
         async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
-            await _friendshipService.GetSentRequestsAsync(_sessionUser.UserId, pageNumber, pageSize);
+            await _friendshipService.GetSentRequestUsersAsync(_sessionUser.UserId, pageNumber, pageSize);
         
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintUser,
-            Constraints.DefaultPageSize,
+            Printer.PrintUserPreview,
+            ProjectConstants.Constants.DefaultPageSize,
             CancelRequestAsync,
             sectionTitle: "Sent Requests"
         );
@@ -195,15 +193,15 @@ public class FriendMenu : BaseMenu
     #region Find Users
     private async Task FindUsersAsync()
     {
-        string usernameQuery = Prompter.GetStringInput("Search username", 1, Constraints.UsernameMaxlength);
+        string usernameQuery = Prompter.GetStringInput("Search username", 1, ProjectConstants.Constants.UsernameMaxlength);
 
         async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
             await _accountService.SearchUsersAsync(usernameQuery, pageNumber, pageSize);
 
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintUser,
-            Constraints.DefaultPageSize,
+            Printer.PrintUserPreview,
+            ProjectConstants.Constants.DefaultPageSize,
             ViewSearchedUserProfileAsync,
             $"Search results for '{usernameQuery}'"
         );
@@ -248,8 +246,8 @@ public class FriendMenu : BaseMenu
         
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintUser,
-            Constraints.DefaultPageSize,
+            Printer.PrintUserPreview,
+            ProjectConstants.Constants.DefaultPageSize,
             RemoveFriendAsync,
             "Remove user from friends"
         );

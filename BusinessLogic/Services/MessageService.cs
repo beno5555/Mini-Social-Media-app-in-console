@@ -1,7 +1,8 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos.MessageDtos;
+using social_media_console_app.BusinessLogic.Dtos.UserDtos;
 using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Responses;
-using social_media_console_app.Constants.Enums;
+using social_media_console_app.ProjectConstants.Enums;
 using social_media_console_app.Repositories;
 
 namespace social_media_console_app.BusinessLogic.Services;
@@ -12,17 +13,20 @@ public class MessageService
     private readonly UserRepository       _userRepository;
     private readonly FriendshipRepository _friendshipRepository;
     private readonly MessageMapper        _messageMapper;
+    private readonly UserMapper           _userMapper;
 
     public MessageService(
-        MessageRepository messageRepository,
-        UserRepository userRepository,
+        MessageRepository    messageRepository,
+        UserRepository       userRepository,
         FriendshipRepository friendshipRepository,
-        MessageMapper messageMapper)
+        MessageMapper        messageMapper,
+        UserMapper           userMapper)
     {
         _messageRepository = messageRepository;
         _userRepository = userRepository;
         _friendshipRepository = friendshipRepository;
         _messageMapper = messageMapper;
+        _userMapper = userMapper;
     }
 
     /// <summary>
@@ -57,16 +61,15 @@ public class MessageService
         int? pageSize = null)
     {
         var response = new Response<List<DisplayMessageDto>>();
-
         var friendshipCheck = await ValidFriendship(currentUserId, responderUserId);
 
         if (friendshipCheck.Success)
         {
             var messages = await _messageRepository.GetConversationAsync(currentUserId, responderUserId, pageNumber, pageSize);
-            var unreadMessages = messages.Where(message => !message.IsRead && message.ReceiverUserId == currentUserId)
-                .ToList();
-            
-            await _messageRepository.MarkAsReadAsync(unreadMessages);
+            messages
+                // .Where(message => !message.IsRead && message.ReceiverUserId == currentUserId)
+                .Reverse(); // Repository fetches the messages in descending order to fetch the latest ones. we should reverse it.
+            await _messageRepository.MarkAsReadAsync(messages);
             
             var messageDtos = messages.Select(_messageMapper.ToDisplay).ToList();
             response.Ok(messageDtos);
@@ -77,6 +80,21 @@ public class MessageService
         }
 
         return response;
+    }
+
+    public async Task<List<DisplayUserDto>> GetConversationFriendsAsync(int userId, int? pageNumber, int? pageSize) =>
+        await GetFriendsByConversationStatusAsync(userId, true, pageNumber, pageSize);
+
+    public async Task<List<DisplayUserDto>> GetNonConversationFriendsAsync(int userId, int? pageNumber, int? pageSize) =>
+        await GetFriendsByConversationStatusAsync(userId, false, pageNumber, pageSize);
+    
+    private async Task<List<DisplayUserDto>> GetFriendsByConversationStatusAsync(int userId, bool shouldHaveConversation, int? pageNumber, int? pageSize)
+    {
+        var friends =
+            await _userRepository.GetFriendsByConversationStatusAsync(userId, shouldHaveConversation, pageNumber, pageSize);
+        var userDtos = friends.Select(_userMapper.ToDisplay).ToList();
+
+        return userDtos;
     }
 
     public async Task<bool> HasUnreadAsync(int userId)
@@ -116,4 +134,5 @@ public class MessageService
 
         return response;
     }
+
 }

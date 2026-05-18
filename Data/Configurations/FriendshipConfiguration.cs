@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using social_media_console_app.Constants.Enums;
 using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants.Enums;
 
 namespace social_media_console_app.Data.Configurations;
 

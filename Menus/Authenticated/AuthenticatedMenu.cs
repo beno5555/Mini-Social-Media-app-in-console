@@ -1,6 +1,5 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
-using social_media_console_app.Constants;
 using social_media_console_app.Menus.Base;
 
 namespace social_media_console_app.Menus.Authenticated;
@@ -80,6 +79,6 @@ public class AuthenticatedMenu : BaseMenu
         _sessionUser.UserId = 0;
         _sessionUser.Username = string.Empty;
         Console.WriteLine("Logging out...");
-        Thread.Sleep(Constraints.MenuBackTrackDelayInMilliseconds);
+        Thread.Sleep(ProjectConstants.Constants.MenuBackTrackDelayInMilliseconds);
     }
 }

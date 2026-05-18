@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using social_media_console_app.Constants;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -14,7 +13,7 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
 
         builder.Property(comment => comment.CommentContent)
             .IsRequired()
-            .HasMaxLength(Constraints.CommentMaxLength);
+            .HasMaxLength(ProjectConstants.Constants.CommentMaxLength);
 
         builder.HasOne(comment => comment.CommenterUser)
             .WithMany(user => user.Comments)

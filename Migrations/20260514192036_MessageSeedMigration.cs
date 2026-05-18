@@ -20,7 +20,7 @@ namespace social_media_console_app.Migrations
 
             migrationBuilder.InsertData(
                 table: "Messages",
-                columns: new[] { "Id", "CreatedAt", "IsRead", "MessageContent", "ReceiverUserId", "SenderUserId" },
+                columns: new[] { "Id", "SentAt", "IsRead", "MessageContent", "ReceiverUserId", "SenderUserId" },
                 values: new object[] { 1, new DateTime(2026, 5, 14, 18, 47, 58, 0, DateTimeKind.Utc), false, "Hello first admin! i am the second admin", 1, 2 });
         }
 

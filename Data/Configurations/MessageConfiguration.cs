@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using social_media_console_app.Constants;
 using social_media_console_app.Models;
 
 namespace social_media_console_app.Data.Configurations;
@@ -14,7 +13,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
 
         builder.Property(message => message.MessageContent)
             .IsRequired()
-            .HasMaxLength(Constraints.MessageMaxLength);
+            .HasMaxLength(ProjectConstants.Constants.MessageMaxLength);
 
         // service implementation must manually delete the user's messages before deleting the user.
         builder.HasOne(message => message.SenderUser)

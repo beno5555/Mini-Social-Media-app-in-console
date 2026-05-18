@@ -30,13 +30,21 @@ public class MessageRepository : BaseEntityRepository<Message>
         return await GetWhereAsync(
             message => (message.SenderUserId == userA || message.SenderUserId == userB) &&
                        (message.ReceiverUserId == userA || message.ReceiverUserId == userB),
-            pageNumber, pageSize);
+            pageNumber,
+            pageSize,
+            orderBy: query => query.OrderByDescending(message => message.CreatedAt));
     }
 
     public async Task DeleteUserMessagesAsync(int userId)
     {
         await DeleteWhereAsync(message => message.SenderUserId   == userId ||
                                           message.ReceiverUserId == userId);
+    }
+
+    public async Task DeleteConversationAsync(int userA, int userB)
+    {
+        await DeleteWhereAsync(message => (message.SenderUserId == userA && message.ReceiverUserId == userB) ||
+                                          (message.SenderUserId == userB && message.ReceiverUserId == userA));
     }
 
     public async Task<List<Message>> GetUnreadAsync(int senderId, int receiverId)

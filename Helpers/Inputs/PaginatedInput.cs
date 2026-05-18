@@ -1,4 +1,4 @@
-﻿namespace social_media_console_app.Helpers;
+﻿namespace social_media_console_app.Helpers.Inputs;
 
 public readonly struct PaginatedInput
 {

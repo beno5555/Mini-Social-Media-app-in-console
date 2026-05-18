@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using social_media_console_app.Constants.Enums;
 using social_media_console_app.Data;
 using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants.Enums;
 using social_media_console_app.Repositories.Base;
 
 namespace social_media_console_app.Repositories;
@@ -47,9 +47,14 @@ public class FriendshipRepository : BaseRepository<Friendship>
     /// <summary>
     /// fetches the friendships that userId sent with optional status filter
     /// </summary>
-    public async Task<List<Friendship>> GetAsync(int userId, FriendshipStatus? status, int? pageNumber = null, int? pageSize = null)
+    private async Task<List<Friendship>> GetAsync(
+        int userId,
+        FriendshipStatus? status,
+        int? pageNumber = null,
+        int? pageSize = null
+        )
     {
-        return await GetWhereAsync(friendship =>
+        return await GetWhereAsync(friendship => 
             friendship.AddresseeUserId == userId && (!status.HasValue || friendship.FriendshipStatus == status), // only checks for status if the parameter has value
             pageNumber, pageSize); 
     }
@@ -99,4 +104,5 @@ public class FriendshipRepository : BaseRepository<Friendship>
         await DeleteWhereAsync(friendship => friendship.RequesterUserId == userId ||
                                              friendship.AddresseeUserId == userId);
     }
+
 }

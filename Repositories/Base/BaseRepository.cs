@@ -1,7 +1,6 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using social_media_console_app.Data;
-using social_media_console_app.Models;
 
 namespace social_media_console_app.Repositories.Base;
 
@@ -78,12 +77,12 @@ public class BaseRepository<T> where T : class
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<T?> GetFirstAsync(Expression<Func<T, bool>> predicate)
+    protected async Task<T?> GetFirstAsync(Expression<Func<T, bool>> predicate)
     {
         return await _dbSet.FirstOrDefaultAsync(predicate);
     }
 
-    public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+    protected async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
     {
         return await _dbSet.AnyAsync(predicate);
     }
@@ -93,4 +92,10 @@ public class BaseRepository<T> where T : class
         var query = _dbSet;
         return track ? query : query.AsNoTracking();
     }
+    public async Task ExecuteInTransactionAsync(Func<Task> operation)
+    {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        await operation();
+        await transaction.CommitAsync();
+    }   
 }

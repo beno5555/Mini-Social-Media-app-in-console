@@ -1,7 +1,7 @@
-﻿using ProjectHelperLibrary.Utilities;
-using social_media_console_app.BusinessLogic.Dtos;
-using social_media_console_app.Constants;
+﻿using social_media_console_app.BusinessLogic.Dtos;
+using social_media_console_app.ProjectConstants;
 using social_media_console_app.Helpers;
+using social_media_console_app.Helpers.Inputs;
 
 namespace social_media_console_app.Menus.Base;
 
@@ -30,7 +30,8 @@ public abstract class BaseMenu
     protected virtual Task OnEnter(string? currentMenuMessage = null)
     {
         Console.Clear();
-        Console.WriteLine(currentMenuMessage ?? Title);
+        string title = currentMenuMessage    ?? Title;
+        Console.WriteLine($"--- {title} ---");
         
         return Task.CompletedTask;
     }
@@ -47,24 +48,24 @@ public abstract class BaseMenu
         string? sectionTitle = null,
         bool shouldSelectItem = true)
     {
-        int  pageNumber  = 1;
+        int  currentPage  = 1;
         bool run   = true;
         var  cache = new Dictionary<int, List<T>>();
 
         while (run)
         {
             await OnEnter(sectionTitle);
-            Console.WriteLine($"Page - {pageNumber}");
+            Console.WriteLine($"Page - {currentPage}");
             
-            if (!cache.TryGetValue(pageNumber, out var items))
+            if (!cache.TryGetValue(currentPage, out var items))
             {
-                items = await fetchPage(pageNumber, pageSize);
-                cache[pageNumber] = items;
+                items = await fetchPage(currentPage, pageSize);
+                cache[currentPage] = items;
             }
             
-            Printer.PrintList(items, printItem);
+            Printer.PrintList(items, printItem, shouldSelectItem); // do not need numbering if no need to select
 
-            bool hasPrevious = pageNumber > 1;
+            bool hasPrevious = currentPage > 1;
             bool hasNext     = pageSize == items.Count; // there is a chance that pageSize and last few items count matched and this boolean value is misleading
 
             PaginatedInput input = Prompter.GetPaginatedInput(shouldSelectItem ? items.Count : 0, hasPrevious, hasNext);
@@ -74,10 +75,10 @@ public abstract class BaseMenu
                 case PaginatedInput.Kind.Item:
                     return items[input.Index - 1]; 
                 case PaginatedInput.Kind.Next:
-                    pageNumber++;
+                    currentPage++;
                     break;
                 case PaginatedInput.Kind.Previous:
-                    pageNumber--;
+                    currentPage--;
                     break;
                 case PaginatedInput.Kind.BackToMenu:
                     run = false;
@@ -106,12 +107,12 @@ public abstract class BaseMenu
             {
                 await OnEnter(selectedSectionTitle);
                 await onSelect!(selectedItem);
-                ConsoleUtilities.ResetMenu();
+                Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
             }
         } while (selectedItem is not null);
 
         Console.WriteLine("Routing back...");
-        Thread.Sleep(Constraints.MenuBackTrackDelayInMilliseconds);
+        Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
     }
     protected async Task ConfirmAction(string prompt, Func<Task> action)
     {
@@ -145,8 +146,7 @@ public abstract class BaseMenu
             {
                 await CompleteOperation(choice);
                 
-                Console.WriteLine("Press any key to reset menu..");
-                Console.ReadKey();
+                Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
             }
 
         }

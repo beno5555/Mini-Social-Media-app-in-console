@@ -6,7 +6,7 @@ namespace social_media_console_app.Data;
 public class ApplicationDbContext : DbContext
 {
     public DbSet<Comment> Comments   { get; set; }
-    public DbSet<Comment> Friendship { get; set; }
+    public DbSet<Friendship> Friendships { get; set; }
     public DbSet<Message> Messages   { get; set; }
     public DbSet<Post>    Posts      { get; set; }
     public DbSet<User>    Users      { get; set; }

@@ -1,5 +1,4 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
-using social_media_console_app.Constants.Enums;
 using social_media_console_app.Menus.Authenticated;
 
 namespace social_media_console_app.Menus;

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ProjectHelperLibrary.Response;
 using ProjectHelperLibrary.Utilities;
 using ProjectHelperLibrary.Validations;
+using social_media_console_app.Helpers.Inputs;
 
 namespace social_media_console_app.Helpers;
 
@@ -80,6 +81,44 @@ public static class Prompter
             {
                 Console.WriteLine("Invalid input.");
             }
+
+        } while (true);
+    }
+
+    public static ConversationInput GetConversationInput(bool hasPrevious, bool hasNext)
+    {
+        Dictionary<ConsoleKey, string> hints = new()
+        {
+            { ConsoleKey.D0, "Back to menu" },
+            { ConsoleKey.M, "Send a message" }
+        };
+        
+        if (hasPrevious) hints.Add(ConsoleKey.P, "Previous page");
+        if (hasNext) hints.Add(ConsoleKey.N, "Next page");
+
+        do
+        {
+            Printer.PrintInputHints(hints);
+            var keyInfo = ConsoleUtilities.WaitForKey(hints.Keys.ToArray());
+
+            if (keyInfo.Key == ConsoleKey.M)
+            {
+                return ConversationInput.WriteMessage();
+            }
+            if (keyInfo.Key == ConsoleKey.P && hasPrevious)
+            {
+                return ConversationInput.Previous();
+            }
+            if (keyInfo.Key == ConsoleKey.N && hasNext)
+            {
+                return ConversationInput.Next();
+            }
+            if (keyInfo.Key == ConsoleKey.D0)
+            {
+                return ConversationInput.BackToMenu();
+            }
+
+            Console.WriteLine("invalid input");
 
         } while (true);
     }

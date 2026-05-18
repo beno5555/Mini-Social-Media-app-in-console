@@ -1,7 +1,9 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ProjectHelperLibrary.Validations;
 using social_media_console_app.Data;
 using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants.Enums;
 using social_media_console_app.Repositories.Base;
 
 namespace social_media_console_app.Repositories;
@@ -39,25 +41,6 @@ public class UserRepository : BaseEntityRepository<User>
         return await ExistsAsync(user => user.Email == email);
     }
     
-    public async Task<User?> GetWithPostsByUsernameAsync(string username, int recentPostsCount = 10)
-    {
-        return await GetWithPostsAsync(user => user.Username == username, recentPostsCount);
-    }
-
-    public async Task<User?> GetWithPostsByEmailAsync(string email, int recentPostsCount = 10)
-    {
-        return await GetWithPostsAsync(user => user.Email == email, recentPostsCount);
-    }
-
-    public async Task<User?> GetWithPostsAsync(Expression<Func<User, bool>> predicate, int recentPostsCount = 10)
-    {
-        return await _dbContext.Users
-            .Include(user => user.Posts
-                .OrderByDescending(post => post.CreatedAt)
-                .Take(recentPostsCount))
-            .FirstOrDefaultAsync(predicate);
-    }
-
     public async Task<List<User>> GetUsersAsync(int excludedUserId, int? pageNumber, int? pageSize)
     {
         return await GetWhereAsync(user => user.Id != excludedUserId, pageNumber, pageSize);
@@ -68,7 +51,40 @@ public class UserRepository : BaseEntityRepository<User>
         return await GetWhereAsync(user => user.Username.Contains(usernameInput), pageNumber, pageSize);
     }
 
+    /// <summary>
+    /// fetches friends with whom the user has conversations if shouldHaveConversation is true
+    /// fetches friends with whom the user does not have a conversation if shouldHaveConversation is false
+    /// </summary>
+    public async Task<List<User>> GetFriendsByConversationStatusAsync(int userId, bool shouldHaveConversation, int? pageNumber, int? pageSize)
+    {
+        Expression<Func<User, bool>> areFriendsAndHaveConversationPredicate = user =>
+            _dbContext.Friendships.Any(friendship =>
+                ((friendship.AddresseeUserId == userId  && friendship.RequesterUserId == user.Id) ||
+                 (friendship.AddresseeUserId == user.Id && friendship.RequesterUserId == userId)) &&
+                friendship.FriendshipStatus == FriendshipStatus.Accepted)
+            &&
+            shouldHaveConversation == _dbContext.Messages.Any(message =>
+                (message.SenderUserId == userId  && message.ReceiverUserId == user.Id) ||
+                (message.SenderUserId == user.Id && message.ReceiverUserId == userId));
 
+        Func<IQueryable<User>, IOrderedQueryable<User>>? latest = shouldHaveConversation
+            ? query => query.OrderByDescending(u =>
+                _dbContext.Messages
+                    .Where(m =>
+                        (m.SenderUserId == userId && m.ReceiverUserId == u.Id) ||
+                        (m.SenderUserId == u.Id   && m.ReceiverUserId == userId))
+                    .Max(m => m.CreatedAt)) // last messaged sent in each conversation
+            : null;
+
+        return await GetWhereAsync(
+            areFriendsAndHaveConversationPredicate,
+            pageNumber,
+            pageSize,
+            latest
+        );
+    }
+
+    
     /// <summary>
     /// messages and friends aren't loaded from users.
     /// 

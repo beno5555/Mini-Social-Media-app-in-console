@@ -1,6 +1,6 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
-using social_media_console_app.Constants;
+using social_media_console_app.ProjectConstants;
 using social_media_console_app.Helpers;
 using social_media_console_app.Menus.Base;
 
@@ -39,7 +39,7 @@ public class UnauthenticatedMenu : BaseMenu
             if (choice == ExitRoute)
             {
                 Console.WriteLine("Exiting..");
-                Thread.Sleep(Constraints.MenuBackTrackDelayInMilliseconds);
+                Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
                 _exitOnBack = true;
                 run = false;
             }

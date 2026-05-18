@@ -136,12 +136,12 @@ namespace social_media_console_app.Migrations
 
             migrationBuilder.InsertData(
                 table: "User",
-                columns: new[] { "Id", "Bio", "CreatedAt", "DateOfBirth", "Email", "PasswordHash", "PasswordSalt", "Username" },
+                columns: new[] { "Id", "Bio", "SentAt", "DateOfBirth", "Email", "PasswordHash", "PasswordSalt", "Username" },
                 values: new object[] { 1, "I am admin of this app", new DateTime(2026, 5, 14, 18, 29, 30, 0, DateTimeKind.Utc), new DateTime(2000, 4, 17, 0, 0, 0, 0, DateTimeKind.Utc), "admin123@gmail.com", "ncE/vkagQZft0U5DxV0Z4IbHNBWgVkt/1RC/haf3nPg=", "oNsJmAzkVehBjvRvQta4DtP3DveFpzniZ50nST4F2Pg=", "first_admin" });
 
             migrationBuilder.InsertData(
                 table: "Posts",
-                columns: new[] { "Id", "CreatedAt", "PostContent", "PostTitle", "UserId" },
+                columns: new[] { "Id", "SentAt", "PostContent", "PostTitle", "UserId" },
                 values: new object[] { 1, new DateTime(2026, 5, 14, 18, 30, 58, 0, DateTimeKind.Utc), "this is initial admin post", "Initial admin post", 1 });
 
             migrationBuilder.CreateIndex(

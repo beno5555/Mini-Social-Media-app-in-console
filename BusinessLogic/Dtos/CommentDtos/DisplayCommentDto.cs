@@ -1,3 +1,3 @@
 ﻿namespace social_media_console_app.BusinessLogic.Dtos.CommentDtos;
 
-public record DisplayCommentDto(int Id, string SenderUsername, string Content, DateTime CreatedAt);
+public record DisplayCommentDto(int Id, string SenderUsername, string Content, DateTime SentAt);

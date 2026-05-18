@@ -2,7 +2,7 @@
 using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
 using social_media_console_app.BusinessLogic.Dtos.PostDtos;
 using social_media_console_app.BusinessLogic.Services;
-using social_media_console_app.Constants;
+using social_media_console_app.ProjectConstants;
 using social_media_console_app.Helpers;
 using social_media_console_app.Menus.Base;
 
@@ -58,8 +58,8 @@ public class PostMenu : BaseMenu
 
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintPost,
-            Constraints.DefaultPageSize,
+            Printer.PrintPostPreview,
+            Constants.DefaultPageSize,
             ViewPostAsync,
             sectionTitle: "See what your friends have been up to!"
             );
@@ -113,9 +113,48 @@ public class PostMenu : BaseMenu
 
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintComment,
-            Constraints.DefaultPageSize,
+            Printer.PrintCommentPreview,
+            Constants.DefaultPageSize,
+            ViewCommentAsync,
             sectionTitle: "Comments");
+    }
+
+    private async Task ViewCommentAsync(DisplayCommentDto comment)
+    {
+        Printer.PrintCommentDetails(comment);
+        Console.WriteLine();
+
+        bool isOwner = comment.SenderUsername == _sessionUser.Username;
+
+        List<string> options = new List<string>();
+        if (isOwner)
+        {
+            options.Add("Delete comment");
+        }
+        
+        Printer.PrintLines(options, "Back to comment section", true, false);
+        int choice = Prompter.GetIntInput(string.Empty, 0, options.Count);
+
+        if (choice == 1)
+        {
+            await DeleteCommentAsync(comment.Id);
+        }
+    }
+
+    private async Task DeleteCommentAsync(int commentId)
+    {
+        await ConfirmAction("Are you sure you want to delete a comment?", async () =>
+        {
+            var response = await _commentService.DeleteCommentAsync(commentId);
+            if (response.Success)
+            {
+                Console.WriteLine("Comment deleted");
+            }
+            else
+            {
+                Console.WriteLine("Could not delete comment. " + response.Message);
+            }
+        });
     }
 
     private async Task WriteCommentAsync(DisplayPostDto post)
@@ -177,8 +216,8 @@ public class PostMenu : BaseMenu
 
         await BrowseAndSelectAsync(
             FetchPage,
-            Printer.PrintPost,
-            Constraints.DefaultPageSize,
+            Printer.PrintPostPreview,
+            Constants.DefaultPageSize,
             ViewPostAsync);
     }
 
@@ -187,7 +226,7 @@ public class PostMenu : BaseMenu
     /// </summary>
     private async Task ViewUserPostsAsync(int userId)
     {
-        var fetchInAdvance = await _postService.GetByUserIdAsync(userId, 1, Constraints.DefaultPageSize);
+        var fetchInAdvance = await _postService.GetByUserIdAsync(userId, 1, Constants.DefaultPageSize);
         if (fetchInAdvance.Success)
         {
             async Task<List<DisplayPostDto>> FetchPage(int pageNumber, int pageSize)
@@ -198,8 +237,8 @@ public class PostMenu : BaseMenu
 
             await BrowseAndSelectAsync(
                 FetchPage,
-                Printer.PrintPost,
-                Constraints.DefaultPageSize,
+                Printer.PrintPostPreview,
+                Constants.DefaultPageSize,
                 ViewPostAsync,
                 $"Posts featured by '{_sessionUser.Username}'");
         }

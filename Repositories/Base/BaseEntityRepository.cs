@@ -24,6 +24,11 @@ public class BaseEntityRepository<T> : BaseRepository<T> where T : BaseEntity
 
         return entity is not null;
     }
+
+    public async Task DeleteWithoutChangeTrackingAsync(int id)
+    {
+        await DeleteWhereAsync(entity => entity.Id == id);
+    }
     
     public async Task<bool> ExistsByIdAsync(int id)
     {

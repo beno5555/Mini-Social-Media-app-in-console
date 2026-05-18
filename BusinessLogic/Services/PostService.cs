@@ -100,8 +100,11 @@ public class PostService
 
         if (post is not null)
         {
-            await _commentRepository.DeletePostCommentsAsync(post.Id);
-            await _postRepository.DeleteAsync(post);
+            await _postRepository.ExecuteInTransactionAsync(async () =>
+            {
+                await _commentRepository.DeletePostCommentsAsync(post.Id);
+                await _postRepository.DeleteWithoutChangeTrackingAsync(post.Id);
+            });
         }
         else
         {

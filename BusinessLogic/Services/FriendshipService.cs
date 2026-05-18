@@ -1,8 +1,8 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos.UserDtos;
 using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Responses;
-using social_media_console_app.Constants.Enums;
 using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants.Enums;
 using social_media_console_app.Repositories;
 
 namespace social_media_console_app.BusinessLogic.Services;
@@ -10,12 +10,14 @@ namespace social_media_console_app.BusinessLogic.Services;
 public class FriendshipService
 {
     private readonly FriendshipRepository _friendshipRepository;
+    private readonly MessageRepository _messageRepository;
     private readonly UserRepository       _userRepository;
     private readonly UserMapper           _userMapper;
 
-    public FriendshipService(FriendshipRepository friendshipRepository, UserMapper userMapper, UserRepository userRepository)
+    public FriendshipService(FriendshipRepository friendshipRepository, MessageRepository messageRepository, UserMapper userMapper, UserRepository userRepository)
     {
         _friendshipRepository = friendshipRepository;
+        _messageRepository = messageRepository;
         _userRepository = userRepository;
         _userMapper = userMapper;
     }
@@ -111,11 +113,12 @@ public class FriendshipService
 
         if (friendship is not null)
         {
+            await _messageRepository.DeleteConversationAsync(userId, friendId);
             await _friendshipRepository.DeleteAsync(friendship);
         }
         else
         {
-            response.Fail("Friendship not found");
+            response.Fail("Friendships not found");
         }
 
         return response;
@@ -126,13 +129,13 @@ public class FriendshipService
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetFriendshipsAsync, pageNumber, pageSize);
     }
 
-    public async Task<List<DisplayUserDto>> GetPendingRequestsAsync(int userId, int? pageNumber,
+    public async Task<List<DisplayUserDto>> GetPendingRequestUsersAsync(int userId, int? pageNumber,
         int?                                                                      pageSize)
     {
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetPendingRequestsAsync, pageNumber, pageSize);
     }
     
-    public async Task<List<DisplayUserDto>> GetSentRequestsAsync(int userId, int? pageNumber, int? pageSize)
+    public async Task<List<DisplayUserDto>> GetSentRequestUsersAsync(int userId, int? pageNumber, int? pageSize)
     {
         return await FetchRelationshipsAsync(userId, _friendshipRepository.GetSentRequestsAsync, pageNumber, pageSize);
     }

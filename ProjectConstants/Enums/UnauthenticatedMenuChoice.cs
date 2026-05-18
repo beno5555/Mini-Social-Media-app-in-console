@@ -1,4 +1,4 @@
-﻿namespace social_media_console_app.Constants.Enums;
+﻿namespace social_media_console_app.ProjectConstants.Enums;
 
 public enum UnauthenticatedMenuChoice
 {
