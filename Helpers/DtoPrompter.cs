@@ -36,7 +36,7 @@ public static class DtoPrompter
         return loginDto;
     }
 
-    public static CreateCommentDto NewComment(int commenterId, int postId)
+    public static CreateCommentDto Comment(int commenterId, int postId)
     {
         string content          = Prompter.GetStringInput("Write a comment", 1, Constants.CommentMaxLength);
         var    createCommentDto = new CreateCommentDto(content, commenterId, postId);
@@ -44,7 +44,7 @@ public static class DtoPrompter
         return createCommentDto;
     }
 
-    public static CreatePostDto CreatePost(int creatorId)
+    public static CreatePostDto Post(int creatorId)
     {
         string title   = Prompter.GetStringInput("Title",   1, Constants.PostTitleMaxLength);
         string content = Prompter.GetStringInput("Content", 1, Constants.PostContentMaxLength);

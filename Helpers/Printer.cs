@@ -9,6 +9,7 @@ namespace social_media_console_app.Helpers;
 public static class Printer
 {
     #region Previews
+
     public static void PrintUserPreview(DisplayUserDto user, int index)
     {
         PrintLine(index, user.Username);
@@ -21,7 +22,7 @@ public static class Printer
             : post.Content;
         PrintLine(index, $"{post.Title} - {contentPreview}");
     }
-    
+
     public static void PrintCommentPreview(DisplayCommentDto comment, int index)
     {
         string commentContent = comment.Content.Length > Constants.CommentContentPreviewLength
@@ -30,19 +31,20 @@ public static class Printer
         string commentBody = $"{comment.SenderUsername}: '{commentContent}'";
         PrintLine(index, commentBody);
     }
-    
+
     #endregion
-    
+
     #region Detailed
-    
+
     public static void PrintUserDetails(DisplayUserDto user)
     {
         Console.WriteLine($"\nUsername: {user.Username}");
         Console.WriteLine($"Bio: {(string.IsNullOrEmpty(user.Bio) ? "No bio" : user.Bio)}");
         Console.WriteLine($"Birthday: {user.DateOfBirth:yyyy-MM-dd}");
         Console.WriteLine($"Joined: {user.CreatedAt:yyyy-MM-dd}");
-        
+
     }
+
     public static void PrintPostDetails(DisplayPostDto post)
     {
         Console.WriteLine($"\nUploaded by: {post.AuthorUsername} at {post.UploadedAt:yyyy-MM-dd}");
@@ -59,12 +61,12 @@ public static class Printer
     #endregion
 
     #region Messages
-    
+
     public static void PrintMessages(List<DisplayMessageDto> messages, string currentUsername)
     {
         string?   previousUsename = null;
         DateTime? previousDate    = null;
-        
+
         if (!NoRecords(messages))
         {
             foreach (var message in messages)
@@ -75,14 +77,16 @@ public static class Printer
                 {
                     PrintDaySeparator(messageDate);
                 }
-                
+
                 PrintMessage(message, currentUsername, previousUsename);
                 previousUsename = message.SenderUsername;
                 previousDate = messageDate;
             }
         }
     }
-    private static void PrintMessage(DisplayMessageDto message, string currentMessageUsername, string? previousMessageUsername = null) 
+
+    private static void PrintMessage(DisplayMessageDto message, string currentMessageUsername,
+        string?                                        previousMessageUsername = null)
     {
         bool otherUser    = previousMessageUsername is not null && message.SenderUsername != previousMessageUsername;
         bool isOwnMessage = message.SenderUsername == currentMessageUsername;
@@ -91,7 +95,7 @@ public static class Printer
         string ownMessageIndent = isOwnMessage
             ? new string(' ', (int)(innerWidth * Constants.OwnMessageIndentPercent))
             : string.Empty;
-        
+
         int maxWidth = isOwnMessage
             ? innerWidth
             : (int)(innerWidth * Constants.OtherMessageMaxWidthPercent);
@@ -103,9 +107,9 @@ public static class Printer
         string separator     = " ";
         string header        = authorPrefix + separator + date;
         string headerPadding = new string(' ', innerWidth - indentLength - header.Length);
-        
-        string content       = message.MessageContent;
-        string border        = Constants.ChatBorder.ToString();
+
+        string content = message.MessageContent;
+        string border  = Constants.ChatBorder.ToString();
 
         if (otherUser)
             Console.WriteLine(border + new string(' ', consoleWidth - 2) + border);
@@ -135,7 +139,7 @@ public static class Printer
             string chunk        = content.Substring(charsWritten, charsToWrite);
             string padding      = new string(' ', innerWidth - indentLength - chunk.Length);
             charsWritten += charsToWrite;
-            
+
             Console.Write(border + " " + ownMessageIndent);
             PrintColored(chunk, Constants.MessageContentColor);
             Console.WriteLine(padding + " " + border);
@@ -147,7 +151,7 @@ public static class Printer
         int consoleWidth = Math.Min(Console.WindowWidth, Constants.ChatWidth);
         Console.WriteLine(Constants.ChatBorder + new string('-', consoleWidth - 2) + Constants.ChatBorder);
     }
-    
+
     private static void PrintColored(string text, ConsoleColor color)
     {
         Console.ForegroundColor = color;
@@ -169,29 +173,30 @@ public static class Printer
         PrintColored(label, Constants.TimestampColor);
         Console.WriteLine(new string(' ', rightPadding) + " " + border);
     }
-    
+
     #endregion
 
     #region Helpers
-    
+
     #region Single line
-    
+
     public static void PrintLine(int index, string content)
     {
         string indexTxt = index > 0 ? $"{index}. " : string.Empty;
         Console.WriteLine($"{indexTxt}{content}");
     }
-    
+
     public static void PrintLine(string message, int index)
     {
         Console.WriteLine(index + ". " + message);
     }
-    
+
     #endregion
-    
+
     #region Collections
 
-    public static void PrintList<T>(List<T> list, Action<T, int> printAction, bool showIndex = true, bool printIfNoRecords = true)
+    public static void PrintList<T>(List<T> list, Action<T, int> printAction, bool showIndex = true,
+        bool                                printIfNoRecords = true)
     {
         if (!NoRecords(list, printIfNoRecords))
         {
@@ -205,7 +210,8 @@ public static class Printer
     /// <summary>
     /// User for displaying menu options.
     /// </summary>
-    public static void PrintLines(List<string> lines, string? lastLine, bool showIndex = true, bool printIfNoRecords = true)
+    public static void PrintLines(List<string> lines, string? lastLine, bool showIndex = true,
+        bool                                   printIfNoRecords = true)
     {
         PrintList(lines, PrintLine, showIndex, printIfNoRecords);
         if (lastLine is not null)
@@ -213,7 +219,7 @@ public static class Printer
             PrintLine(lastLine, 0);
         }
     }
-    
+
     public static bool NoRecords<T>(List<T> list, bool printIfNoRecords = true)
     {
         if (list.Count == 0)
@@ -222,21 +228,22 @@ public static class Printer
             {
                 Console.WriteLine($"There are no {typeof(T).Name} records.");
             }
+
             return true;
         }
 
         return false;
     }
-    
+
     #endregion
-    
+
     #region Console key printing
 
     public static void PrintInputHints(Dictionary<ConsoleKey, string> hints)
     {
         var    hintsFormat = hints.Select(kvp => $"{GetKeyName(kvp.Key)} -> {kvp.Value}");
         string text        = string.Join(" | ", hintsFormat);
-        
+
         Console.WriteLine(text);
     }
 
@@ -251,7 +258,7 @@ public static class Printer
 
         return result;
     }
-    
+
     #endregion
 
     #endregion

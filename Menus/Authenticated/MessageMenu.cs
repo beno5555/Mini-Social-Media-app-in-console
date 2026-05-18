@@ -103,6 +103,7 @@ public class MessageMenu : BaseMenu
     
     #endregion
 
+    #region Send a message
     private async Task SendMessageAsync(DisplayUserDto receiverUser)
     {
         
@@ -118,6 +119,7 @@ public class MessageMenu : BaseMenu
             Console.WriteLine("Something went wrong. " + sendMessageResponse.Message);
         }
     }
+    #endregion
     
     #region Message pagination and actions
 
@@ -204,5 +206,4 @@ public class MessageMenu : BaseMenu
     }
     
     #endregion
-    
 }

@@ -65,44 +65,6 @@ public class PostMenu : BaseMenu
             );
     }
 
-    private async Task ViewPostActionAsync(int choice, DisplayPostDto post)
-    {
-        switch (choice)
-        {
-            case 1:
-                await ViewPostCommentsAsync(post);
-                break;
-            case 2:
-                await WriteCommentAsync(post);
-                break;
-            case 3:
-                await DeletePostAsync(post);
-                break;
-        }
-    }
-
-    private async Task ViewPostAsync(DisplayPostDto post)
-    {
-        Printer.PrintPostDetails(post);
-        Console.WriteLine();
-
-        List<string> viewPostOptions =
-        [
-            "View Comments",
-            "Write a Comment"
-        ];
-        bool isOwner = post.AuthorUsername == _sessionUser.Username;
-        if (isOwner)
-        {
-            viewPostOptions.Add("Delete post");
-        }
-        
-        Printer.PrintLines(viewPostOptions, "Back to posts");
-        int choice = Prompter.GetIntInput(string.Empty, 0, viewPostOptions.Count);
-
-        await ViewPostActionAsync(choice, post);
-    }
-
     private async Task ViewPostCommentsAsync(DisplayPostDto post)
     {
         async Task<List<DisplayCommentDto>> FetchPage(int pageNumber, int pageSize)
@@ -159,7 +121,7 @@ public class PostMenu : BaseMenu
 
     private async Task WriteCommentAsync(DisplayPostDto post)
     {
-        var createCommentDto = DtoPrompter.NewComment(_sessionUser.UserId, post.Id);
+        var createCommentDto = DtoPrompter.Comment(_sessionUser.UserId, post.Id);
         var response = await _commentService.AddCommentAsync(createCommentDto);
         if (response.Success)
         {
@@ -191,9 +153,11 @@ public class PostMenu : BaseMenu
     
     #endregion
     
+    #region Create Post
+    
     private async Task CreatePostAsync()
     {
-        var postDto = DtoPrompter.CreatePost(_sessionUser.UserId);
+        var postDto = DtoPrompter.Post(_sessionUser.UserId);
         var response = await _postService.UploadPost(postDto);
 
         if (response.Success)
@@ -205,7 +169,11 @@ public class PostMenu : BaseMenu
             Console.WriteLine("Upload failed. " + response.Message);
         }
     }
+    
+    #endregion
 
+    #region View Posts of a logged in user
+    
     private async Task ViewOwnPostsAsync()
     {
         async Task<List<DisplayPostDto>> FetchPage(int pageNumber, int pageSize)
@@ -220,7 +188,51 @@ public class PostMenu : BaseMenu
             Constants.DefaultPageSize,
             ViewPostAsync);
     }
+    
+    #endregion
 
+    #region View a post
+
+    private async Task ViewPostAsync(DisplayPostDto post)
+    {
+        Printer.PrintPostDetails(post);
+        Console.WriteLine();
+
+        List<string> viewPostOptions =
+        [
+            "View Comments",
+            "Write a Comment"
+        ];
+        bool isOwner = post.AuthorUsername == _sessionUser.Username;
+        if (isOwner)
+        {
+            viewPostOptions.Add("Delete post");
+        }
+        
+        Printer.PrintLines(viewPostOptions, "Back to posts");
+        int choice = Prompter.GetIntInput(string.Empty, 0, viewPostOptions.Count);
+
+        await ViewPostActionAsync(choice, post);
+    }
+
+    private async Task ViewPostActionAsync(int choice, DisplayPostDto post)
+    {
+        switch (choice)
+        {
+            case 1:
+                await ViewPostCommentsAsync(post);
+                break;
+            case 2:
+                await WriteCommentAsync(post);
+                break;
+            case 3:
+                await DeletePostAsync(post);
+                break;
+        }
+    }
+    
+    #endregion
+    
     /// <summary>
     /// might use this in friend menu if I figure out a way to wire the menus bidirectionally
     /// </summary>
@@ -246,6 +258,5 @@ public class PostMenu : BaseMenu
         {
             Console.WriteLine("Failed to fetch posts. " + fetchInAdvance.Message);
         }
-
     }
 }

@@ -19,7 +19,6 @@ public static class Constants
     public const int CommentMaxLength            = 500;
     public const int CommentContentPreviewLength = 70;
     public const int MessageMaxLength            = 1000;
-    public const int OwnMessageIndentLength      = 15;
     
     public const int MinAge = 13;
     public const int MaxAge = 130;
@@ -38,8 +37,8 @@ public static class Constants
 
     public const  int MenuBackTrackDelayInMilliseconds = 800;
 
-    public const ConsoleColor OwnMessageColor = ConsoleColor.Cyan;
-    public const ConsoleColor OtherMessageColor = ConsoleColor.Green;
-    public const ConsoleColor TimestampColor = ConsoleColor.DarkGray;
+    public const ConsoleColor OwnMessageColor     = ConsoleColor.Cyan;
+    public const ConsoleColor OtherMessageColor   = ConsoleColor.Green;
+    public const ConsoleColor TimestampColor      = ConsoleColor.DarkGray;
     public const ConsoleColor MessageContentColor = ConsoleColor.White;
 }

@@ -124,6 +124,8 @@ public static class Prompter
     }
 
     #endregion
+    
+    #region String
     public static string GetStringInput(string prompt, int min, int max, string? regexPattern = null)
     {
         do
@@ -189,6 +191,10 @@ public static class Prompter
 
         } while (true);
     }
+    
+    #endregion
+    
+    #region Date
 
     public static DateTime GetDateInput(string prompt, int minAge, int maxAge)
     {
@@ -226,6 +232,8 @@ public static class Prompter
 
         return result.Value;
     }
+    
+    #endregion
 
     public static bool DoubleCheckIntent(string prompt)
     {

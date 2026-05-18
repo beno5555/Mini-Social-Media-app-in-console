@@ -14,17 +14,6 @@ public class UserRepository : BaseEntityRepository<User>
     {
         
     }
-
-    public async Task<User?> GetByUsernameAsync(string username)
-    {
-        return await GetFirstAsync(user => user.Username == username);
-    }
-
-    public async Task<User?> GetByEmailAsync(string email)
-    {
-        return await GetFirstAsync(user => user.Email == email);
-    }
-
     public async Task<User?> GetByUniqueIdentifierAsync(string uniqueIdentifier)
     {
         return await GetFirstAsync(user => user.Email    == uniqueIdentifier ||
@@ -84,7 +73,6 @@ public class UserRepository : BaseEntityRepository<User>
         );
     }
 
-    
     /// <summary>
     /// messages and friends aren't loaded from users.
     /// 

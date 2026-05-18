@@ -10,7 +10,7 @@ namespace social_media_console_app.BusinessLogic.Services;
 public class FriendshipService
 {
     private readonly FriendshipRepository _friendshipRepository;
-    private readonly MessageRepository _messageRepository;
+    private readonly MessageRepository    _messageRepository;
     private readonly UserRepository       _userRepository;
     private readonly UserMapper           _userMapper;
 
@@ -155,6 +155,6 @@ public class FriendshipService
         return userDtos;
     }
 
-    public bool ValidRequestResponse(FriendshipStatus status) =>
+    private bool ValidRequestResponse(FriendshipStatus status) =>
         status is FriendshipStatus.Accepted or FriendshipStatus.Declined;
 }

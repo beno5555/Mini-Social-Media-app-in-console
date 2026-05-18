@@ -59,17 +59,17 @@ public class BaseRepository<T> where T : class
     }
     
 // likely won't be needed.     
-//    public async Task UpdateAsync(T entity)
-//    {
-//        _dbSet.Update(entity);
-//        await _dbContext.SaveChangesAsync();
-//    }
-//
-//    public async Task UpdateRangeAsync(ICollection<T> entities)
-//    {
-//        _dbSet.UpdateRange(entities);
-//        await _dbContext.SaveChangesAsync();
-//    }
+    // public async Task UpdateAsync(T entity)
+    // {
+    //     _dbSet.Update(entity);
+    //     await _dbContext.SaveChangesAsync();
+    // }
+    //
+    // public async Task UpdateRangeAsync(ICollection<T> entities)
+    // {
+    //     _dbSet.UpdateRange(entities);
+    //     await _dbContext.SaveChangesAsync();
+    // }
 
     public async Task DeleteAsync(T entity)
     {

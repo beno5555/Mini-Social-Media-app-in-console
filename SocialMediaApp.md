@@ -591,5 +591,5 @@ services.AddScoped<MessageMenu>();
 13. [x] `UnauthenticatedMenu`, `MainMenu`, `AuthenticatedMenu`
 14. [x] `FriendMenu`
 15. [x] `PostMenu`
-16. [ ] `MessageMenu`
+16. [x] `MessageMenu`
 17. [x] Wire DI in `Program.cs`

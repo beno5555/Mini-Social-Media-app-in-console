@@ -11,7 +11,7 @@ public class AccountService
     private readonly UserRepository       _userRepository;
     private readonly MessageRepository    _messageRepository;
     private readonly FriendshipRepository _friendshipRepository;
-    private readonly CommentRepository _commentRepository;
+    private readonly CommentRepository    _commentRepository;
     private readonly UserMapper           _userMapper;
 
     public AccountService(UserRepository userRepository, MessageRepository messageRepository, FriendshipRepository friendshipRepository, CommentRepository commentRepository, UserMapper userMapper)

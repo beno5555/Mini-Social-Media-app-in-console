@@ -12,10 +12,10 @@ public class CommentRepository : BaseEntityRepository<Comment>
         
     }
 
-    public async Task<List<Comment>> GetByUserIdAsync(int userId, int? pageNumber, int? pageSize)
-    {
-        return await GetWhereAsync(comment => comment.CommenterUserId == userId, pageNumber, pageSize);
-    }
+    // public async Task<List<Comment>> GetByUserIdAsync(int userId, int? pageNumber, int? pageSize)
+    // {
+    //     return await GetWhereAsync(comment => comment.CommenterUserId == userId, pageNumber, pageSize);
+    // }
 
     public async Task<List<Comment>> GetByPostIdAsync(int postId, int? pageNumber, int? pageSize)
     {
