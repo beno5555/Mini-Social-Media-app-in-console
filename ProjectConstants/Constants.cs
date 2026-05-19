@@ -4,7 +4,7 @@ public static class Constants
 {
     public const int EmailMinLength    = 10;
     public const int EmailMaxLength    = 100;
-    public const int UsernameMinLength = EmailMinLength;
+    public const int UsernameMinLength = 3;
     public const int UsernameMaxlength = EmailMaxLength;
     
     public const int PasswordMinLength     = 6;
@@ -23,8 +23,8 @@ public static class Constants
     public const int MinAge = 13;
     public const int MaxAge = 130;
 
-    public const int    DefaultPageSize             = 3;
-    public const int    DefaultConversationPageSize = 20;
+    public const int    DefaultPageSize             = 10;
+    public const int    DefaultConversationPageSize = 10;
 
     public const int  ChatWidth  = 80;
     public const char ChatBorder = '|';

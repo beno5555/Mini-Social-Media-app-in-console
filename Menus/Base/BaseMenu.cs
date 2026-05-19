@@ -25,11 +25,15 @@ public abstract class BaseMenu
         _sessionUser = sessionUser;
     }
 
+    private void ClearConsole()
+    {
+        Console.Write("\x1b[3J\x1b[H\x1b[2J");
+    }
     protected abstract Task CompleteOperation(int choice);
 
     protected virtual Task OnEnter(string? currentMenuMessage = null)
     {
-        Console.Clear();
+        ClearConsole();
         string title = currentMenuMessage    ?? Title;
         Console.WriteLine($"--- {title} ---");
         

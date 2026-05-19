@@ -1,4 +1,5 @@
-﻿using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
+﻿using System.Runtime.Versioning;
+using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
 using social_media_console_app.BusinessLogic.Dtos.MessageDtos;
 using social_media_console_app.BusinessLogic.Dtos.PostDtos;
 using social_media_console_app.BusinessLogic.Dtos.UserDtos;
@@ -62,10 +63,12 @@ public static class Printer
 
     #region Messages
 
-    public static void PrintMessages(List<DisplayMessageDto> messages, string currentUsername)
+    public static (string? previousUsername, DateTime? previousDate) PrintMessages(
+        List<DisplayMessageDto> messages,
+        string currentUsername,
+        string? previousUsername = null,
+        DateTime? previousDate = null)
     {
-        string?   previousUsename = null;
-        DateTime? previousDate    = null;
 
         if (!NoRecords(messages))
         {
@@ -78,15 +81,20 @@ public static class Printer
                     PrintDaySeparator(messageDate);
                 }
 
-                PrintMessage(message, currentUsername, previousUsename);
-                previousUsename = message.SenderUsername;
+                PrintMessage(message, currentUsername, previousUsername);
+                previousUsername = message.SenderUsername;
                 previousDate = messageDate;
+                
             }
         }
+            
+        return (previousUsername, previousDate);
     }
 
-    private static void PrintMessage(DisplayMessageDto message, string currentMessageUsername,
-        string?                                        previousMessageUsername = null)
+    private static void PrintMessage(
+        DisplayMessageDto message,
+        string currentMessageUsername,
+        string? previousMessageUsername = null)
     {
         bool otherUser    = previousMessageUsername is not null && message.SenderUsername != previousMessageUsername;
         bool isOwnMessage = message.SenderUsername == currentMessageUsername;
@@ -168,7 +176,7 @@ public static class Printer
         int    leftPadding  = totalPadding / 2;
         int    rightPadding = totalPadding - leftPadding;
         string border       = Constants.ChatBorder.ToString();
-
+        
         Console.Write(border + " " + new string(' ', leftPadding));
         PrintColored(label, Constants.TimestampColor);
         Console.WriteLine(new string(' ', rightPadding) + " " + border);

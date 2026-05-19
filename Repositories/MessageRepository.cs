@@ -28,8 +28,8 @@ public class MessageRepository : BaseEntityRepository<Message>
         int? pageSize = null )
     {
         return await GetWhereAsync(
-            message => (message.SenderUserId == userA || message.SenderUserId == userB) &&
-                       (message.ReceiverUserId == userA || message.ReceiverUserId == userB),
+            message => (message.SenderUserId == userA && message.ReceiverUserId == userB) ||
+                       (message.SenderUserId == userB && message.ReceiverUserId == userA),
             pageNumber,
             pageSize,
             orderBy: query => query.OrderByDescending(message => message.CreatedAt));

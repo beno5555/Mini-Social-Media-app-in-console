@@ -93,33 +93,28 @@ public static class Prompter
             { ConsoleKey.M, "Send a message" }
         };
         
-        if (hasPrevious) hints.Add(ConsoleKey.P, "Previous page");
-        if (hasNext) hints.Add(ConsoleKey.N, "Next page");
+        if (hasPrevious) hints.Add(ConsoleKey.O, "Older Messages");
+        if (hasNext) hints.Add(ConsoleKey.N, "Newer Messages");
 
         do
         {
             Printer.PrintInputHints(hints);
             var keyInfo = ConsoleUtilities.WaitForKey(hints.Keys.ToArray());
 
-            if (keyInfo.Key == ConsoleKey.M)
+            switch (keyInfo.Key)
             {
-                return ConversationInput.WriteMessage();
+                case ConsoleKey.M:
+                    return ConversationInput.WriteMessage();
+                case ConsoleKey.O when hasPrevious:
+                    return ConversationInput.Older();
+                case ConsoleKey.N when hasNext:
+                    return ConversationInput.Newer();
+                case ConsoleKey.D0:
+                    return ConversationInput.BackToMenu();
+                default:
+                    Console.WriteLine("invalid input");
+                    break;
             }
-            if (keyInfo.Key == ConsoleKey.P && hasPrevious)
-            {
-                return ConversationInput.Previous();
-            }
-            if (keyInfo.Key == ConsoleKey.N && hasNext)
-            {
-                return ConversationInput.Next();
-            }
-            if (keyInfo.Key == ConsoleKey.D0)
-            {
-                return ConversationInput.BackToMenu();
-            }
-
-            Console.WriteLine("invalid input");
-
         } while (true);
     }
 

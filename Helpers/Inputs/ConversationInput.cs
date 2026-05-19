@@ -5,8 +5,8 @@ public readonly struct ConversationInput
     public enum Kind
     {
         WriteMessage = 1,
-        Next, 
-        Previous,
+        Newer, 
+        Older,
         BackToMenu
     }
 
@@ -18,7 +18,7 @@ public readonly struct ConversationInput
     }
     
     public static ConversationInput WriteMessage()      => new (Kind.WriteMessage);
-    public static ConversationInput Next()       => new (Kind.Next);
-    public static ConversationInput Previous()   => new (Kind.Previous);
+    public static ConversationInput Newer()       => new (Kind.Newer);
+    public static ConversationInput Older()   => new (Kind.Older);
     public static ConversationInput BackToMenu() => new(Kind.BackToMenu);
 }

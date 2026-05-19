@@ -133,6 +133,9 @@ public class MessageMenu : BaseMenu
         bool run          = true;
         bool writeMessage = false;
 
+        string?   previousUsername = null;
+        DateTime? previousDate     = null;
+
         var cache = new Dictionary<int, List<DisplayMessageDto>>();
 
         while (run)
@@ -150,15 +153,19 @@ public class MessageMenu : BaseMenu
                 Console.WriteLine($"Page - {currentPage}");
                 
                 Printer.PrintChatBorder();
-                Printer.PrintMessages(messages, _sessionUser.Username);
+                (previousUsername, previousDate) = Printer.PrintMessages(
+                    messages,
+                    _sessionUser.Username,
+                    previousUsername,
+                    previousDate);
                 Printer.PrintChatBorder();
                 
                 Console.WriteLine();
                 
-                bool hasNext     = currentPage    > 1;
-                bool hasPrevious = messages.Count == ProjectConstants.Constants.DefaultConversationPageSize;
+                bool hasNewer     = currentPage    > 1;
+                bool hasOlder = messages.Count == ProjectConstants.Constants.DefaultConversationPageSize;
                 
-                ConversationInput input = Prompter.GetConversationInput(hasPrevious, hasNext);
+                ConversationInput input = Prompter.GetConversationInput(hasOlder, hasNewer);
 
                 switch (input.Type)
                 {
@@ -166,10 +173,10 @@ public class MessageMenu : BaseMenu
                         writeMessage = true;
                         run = false;
                         break;
-                    case ConversationInput.Kind.Previous:
+                    case ConversationInput.Kind.Older:
                         currentPage++;
                         break;
-                    case ConversationInput.Kind.Next:
+                    case ConversationInput.Kind.Newer:
                         currentPage--;
                         break;
                     case ConversationInput.Kind.BackToMenu:

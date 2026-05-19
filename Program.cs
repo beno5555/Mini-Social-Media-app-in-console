@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using social_media_console_app;
 using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Services;
@@ -39,7 +40,20 @@ services.AddScoped<AuthenticatedMenu>();
 services.AddScoped<UnauthenticatedMenu>();
 services.AddScoped<MainMenu>();
 
+services.AddScoped<Seeder>();
+
 var serviceProvider = services.BuildServiceProvider();
 
 var mainMenu = serviceProvider.GetRequiredService<MainMenu>();
 await mainMenu.Run();
+
+
+// var seeder = serviceProvider.GetRequiredService<Seeder>();
+// await seeder.SeedAsync();
+
+
+// Console.WriteLine("sfjsoidfosijisfjdifjsfoij");
+// Thread.Sleep(200);
+
+// Console.Write("\x1b[3J\x1b[H\x1b[2J");
+

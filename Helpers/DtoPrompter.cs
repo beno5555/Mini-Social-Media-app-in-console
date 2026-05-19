@@ -21,7 +21,7 @@ public static class DtoPrompter
 
         DateTime dob = Prompter.GetDateInput("Date of birth", Constants.MinAge, Constants.MaxAge);
 
-        var registerDto = new RegisterDto(username, email, password, bio, dob);
+        var registerDto = new RegisterDto(username, email, password, dob, bio);
 
         return registerDto;
     }
