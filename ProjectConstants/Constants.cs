@@ -41,4 +41,7 @@ public static class Constants
     public const ConsoleColor OtherMessageColor   = ConsoleColor.Green;
     public const ConsoleColor TimestampColor      = ConsoleColor.DarkGray;
     public const ConsoleColor MessageContentColor = ConsoleColor.White;
+
+    public const ConsoleKey HomeKey     = ConsoleKey.Escape;
+    public const string     HomeCommand = "exit";
 }

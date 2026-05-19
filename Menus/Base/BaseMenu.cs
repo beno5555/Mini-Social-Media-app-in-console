@@ -10,6 +10,8 @@ public abstract class BaseMenu
     protected readonly SessionUser  _sessionUser;
     
     protected abstract string       Title       { get; }
+
+    protected          string?      _currentMenuMessage;
     protected abstract List<string> MenuOptions { get; }
 
     protected virtual string BackLabel => "Back to menu";
@@ -34,7 +36,7 @@ public abstract class BaseMenu
     protected virtual Task OnEnter(string? currentMenuMessage = null)
     {
         ClearConsole();
-        string title = currentMenuMessage    ?? Title;
+        string title = currentMenuMessage ?? Title;
         Console.WriteLine($"--- {title} ---");
         
         return Task.CompletedTask;
@@ -49,8 +51,10 @@ public abstract class BaseMenu
         Func<int, int, Task<List<T>>> fetchPage,
         Action<T, int>                printItem,
         int                           pageSize,
-        string? sectionTitle = null,
-        bool shouldSelectItem = true)
+        string?                       sectionTitle            = null,
+        string?                       messageIfNoItemsFetched = null,
+        bool                          shouldSelectItem        = true
+        )
     {
         int  currentPage  = 1;
         bool run   = true;
@@ -67,7 +71,7 @@ public abstract class BaseMenu
                 cache[currentPage] = items;
             }
             
-            Printer.PrintList(items, printItem, shouldSelectItem); // do not need numbering if no need to select
+            Printer.PrintList(items, printItem, true, messageIfNoItemsFetched, shouldSelectItem); // do not need numbering if no need to select
 
             bool hasPrevious = currentPage > 1;
             bool hasNext     = pageSize == items.Count; // there is a chance that pageSize and last few items count matched and this boolean value is misleading
@@ -98,6 +102,7 @@ public abstract class BaseMenu
         int                           pageSize,
         Func<T, Task>?                onSelect             = null,
         string?                       sectionTitle         = null,
+        string?                       messageIfNoItemsFetched = null,
         string?                       selectedSectionTitle = null
         )
     {
@@ -105,7 +110,13 @@ public abstract class BaseMenu
         do
         {
             bool shouldSelectItem = onSelect is not null;
-            selectedItem = await PaginateAsync(fetchPage, printItem, pageSize, sectionTitle, shouldSelectItem);
+            selectedItem = await PaginateAsync(
+                fetchPage,
+                printItem,
+                pageSize,
+                sectionTitle,
+                messageIfNoItemsFetched,
+                shouldSelectItem);
             
             if (selectedItem is not null)
             {
@@ -136,7 +147,8 @@ public abstract class BaseMenu
 
         while (run)
         {
-            await OnEnter();
+            await OnEnter(_currentMenuMessage);
+            _currentMenuMessage = null;
             
             Printer.PrintLines(MenuOptions, BackLabel);
             int choice = Prompter.GetIntInput("", 0, MenuOptions.Count);

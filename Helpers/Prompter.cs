@@ -4,6 +4,7 @@ using ProjectHelperLibrary.Response;
 using ProjectHelperLibrary.Utilities;
 using ProjectHelperLibrary.Validations;
 using social_media_console_app.Helpers.Inputs;
+using social_media_console_app.ProjectConstants;
 
 namespace social_media_console_app.Helpers;
 
@@ -16,14 +17,19 @@ public static class Prompter
         do
         {
             Console.Write(prompt);
-            
-            if (int.TryParse(Console.ReadLine(), out int result))
+            string? input = Console.ReadLine()?.Trim();
+
+            if (int.TryParse(input, out int result))
             {
                 validation = result.ProcessValidation(true, min, max);
                 if (!validation.Success)
                 {
                     Console.WriteLine(validation.Message);
                 }
+            }
+            else if (input is not null && input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NavigateToMainMenuException();
             }
             else
             {
@@ -77,6 +83,10 @@ public static class Prompter
             {
                 return PaginatedInput.Next();
             }
+            else if (input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NavigateToMainMenuException();
+            }
             else
             {
                 Console.WriteLine("Invalid input.");
@@ -90,7 +100,8 @@ public static class Prompter
         Dictionary<ConsoleKey, string> hints = new()
         {
             { ConsoleKey.D0, "Back to menu" },
-            { ConsoleKey.M, "Send a message" }
+            { ConsoleKey.M, "Send a message" },
+            { ConsoleKey.P, "View User Profile" }
         };
         
         if (hasPrevious) hints.Add(ConsoleKey.O, "Older Messages");
@@ -109,8 +120,12 @@ public static class Prompter
                     return ConversationInput.Older();
                 case ConsoleKey.N when hasNext:
                     return ConversationInput.Newer();
+                case ConsoleKey.P:
+                    return ConversationInput.UserProfile();
                 case ConsoleKey.D0:
                     return ConversationInput.BackToMenu();
+                case Constants.HomeKey:
+                    throw new NavigateToMainMenuException();
                 default:
                     Console.WriteLine("invalid input");
                     break;
@@ -126,27 +141,31 @@ public static class Prompter
         do
         {
             Console.Write($"{prompt}: ");
-            string? result = Console.ReadLine()?.Trim();
+            string? input = Console.ReadLine()?.Trim();
             
-            if (string.IsNullOrEmpty(result))
+            if (string.IsNullOrEmpty(input))
             {
                 Console.WriteLine("Input cannot be empty");
             }
-            else if (result.Length < min)
+            else if (input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NavigateToMainMenuException();
+            }
+            else if (input.Length < min)
             {
                 Console.WriteLine("Input cannot contain less than " + min + " characters");
             }
-            else if (result.Length > max)
+            else if (input.Length > max)
             {
                 Console.WriteLine("Input cannot contain more than " + max + " characters");
             }
-            else if (regexPattern is not null && !Regex.IsMatch(result, regexPattern))
+            else if (regexPattern is not null && !Regex.IsMatch(input, regexPattern))
             {
                 Console.WriteLine("Invalid format");
             }
             else
             {
-                return result;
+                return input;
             }
 
             Console.WriteLine();
@@ -158,28 +177,33 @@ public static class Prompter
         do
         {
             Console.Write($"{prompt} (Optional, press {ConsoleKey.Enter} to skip): ");
-            string? result = Console.ReadLine()?.Trim();
+            string? input = Console.ReadLine()?.Trim();
         
-            if (string.IsNullOrEmpty(result))
+            if (string.IsNullOrEmpty(input))
             {
                 return null;
             }
             
-            if (result.Length < min)
+            if (input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NavigateToMainMenuException();
+            }
+            
+            if (input.Length < min)
             {
                 Console.WriteLine("Input cannot contain less than " + min + " characters");
             }
-            else if (result.Length > max)
+            else if (input.Length > max)
             {
                 Console.WriteLine("Input cannot contain more than " + max + " characters");
             }
-            else if (regexPattern is not null && !Regex.IsMatch(result, regexPattern))
+            else if (regexPattern is not null && !Regex.IsMatch(input, regexPattern))
             {
                 Console.WriteLine("Invalid format");
             }
             else
             {
-                return result;
+                return input;
             }
 
             Console.WriteLine();
@@ -218,6 +242,10 @@ public static class Prompter
                 {
                     result = date;
                 }
+            }
+            else if (input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NavigateToMainMenuException();
             }
             else
             {

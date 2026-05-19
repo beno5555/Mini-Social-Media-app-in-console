@@ -87,4 +87,10 @@ public class UserRepository : BaseEntityRepository<User>
 
         return track ? query : query.AsNoTracking();
     }
+
+    public async Task UpdateBioAsync(User userToUpdate, string bio)
+    {
+        userToUpdate.Bio = bio;
+        await _dbContext.SaveChangesAsync();
+    }
 }

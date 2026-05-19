@@ -21,6 +21,8 @@ public class PostMenu : BaseMenu
         "My Posts"
     ];
 
+    public Func<string, Task>? OnViewUserProfile { get; set; }
+
     public PostMenu(
         SessionUser    sessionUser,
         PostService    postService,
@@ -61,7 +63,8 @@ public class PostMenu : BaseMenu
             Printer.PrintPostPreview,
             Constants.DefaultPageSize,
             ViewPostAsync,
-            sectionTitle: "See what your friends have been up to!"
+            sectionTitle: ConsoleMessages.FeedMessage,
+            messageIfNoItemsFetched: ConsoleMessages.NoPostsInFeedMessage
             );
     }
 
@@ -78,7 +81,9 @@ public class PostMenu : BaseMenu
             Printer.PrintCommentPreview,
             Constants.DefaultPageSize,
             ViewCommentAsync,
-            sectionTitle: "Comments");
+            sectionTitle: "Comments",
+            messageIfNoItemsFetched: ConsoleMessages.NoCommentsUnderPost(post.Title)
+            );
     }
 
     private async Task ViewCommentAsync(DisplayCommentDto comment)
@@ -88,18 +93,23 @@ public class PostMenu : BaseMenu
 
         bool isOwner = comment.SenderUsername == _sessionUser.Username;
 
-        List<string> options = new List<string>();
+        Dictionary<string, Func<Task>> options = new()
+        {
+            { "View commenter profile", () => OnViewUserProfile!(comment.SenderUsername) }
+        };
         if (isOwner)
         {
-            options.Add("Delete comment");
+            options.Add("Delete comment", () => DeleteCommentAsync(comment.Id));
         }
-        
-        Printer.PrintLines(options, "Back to comment section", true, false);
+
+        var labels = options.Keys.ToList();
+        Printer.PrintLines(labels, "Back to comment section", true, false);
         int choice = Prompter.GetIntInput(string.Empty, 0, options.Count);
 
-        if (choice == 1)
+        if (choice != 0)
         {
-            await DeleteCommentAsync(comment.Id);
+            var operation = options.Values.ElementAt(choice - 1);
+            await operation();
         }
     }
 
@@ -186,57 +196,50 @@ public class PostMenu : BaseMenu
             FetchPage,
             Printer.PrintPostPreview,
             Constants.DefaultPageSize,
-            ViewPostAsync);
+            ViewPostAsync,
+            sectionTitle: ConsoleMessages.OwnPostsMessage,
+            messageIfNoItemsFetched: ConsoleMessages.NoOwnPosts);
     }
     
     #endregion
 
     #region View a post
 
-    private async Task ViewPostAsync(DisplayPostDto post)
+    public async Task ViewPostAsync(DisplayPostDto post)
     {
         Printer.PrintPostDetails(post);
         Console.WriteLine();
 
-        List<string> viewPostOptions =
-        [
-            "View Comments",
-            "Write a Comment"
-        ];
+        Dictionary<string, Func<Task>> viewPostOptions = new()
+        {
+            { "View Comments", () => ViewPostCommentsAsync(post) },
+            { "Write Comment", () => WriteCommentAsync(post) },
+            { "View Profile", () => OnViewUserProfile!(post.AuthorUsername) }
+        };
         bool isOwner = post.AuthorUsername == _sessionUser.Username;
         if (isOwner)
         {
-            viewPostOptions.Add("Delete post");
+            viewPostOptions.Add("Delete post", () => DeletePostAsync(post));
         }
-        
-        Printer.PrintLines(viewPostOptions, "Back to posts");
+
+        var labels = viewPostOptions.Keys.ToList();
+        Printer.PrintLines(labels, "Back to posts");
         int choice = Prompter.GetIntInput(string.Empty, 0, viewPostOptions.Count);
 
-        await ViewPostActionAsync(choice, post);
-    }
-
-    private async Task ViewPostActionAsync(int choice, DisplayPostDto post)
-    {
-        switch (choice)
+        if (choice != 0)
         {
-            case 1:
-                await ViewPostCommentsAsync(post);
-                break;
-            case 2:
-                await WriteCommentAsync(post);
-                break;
-            case 3:
-                await DeletePostAsync(post);
-                break;
+            var operation = viewPostOptions.Values.ElementAt(choice - 1);
+            await operation();
         }
     }
-    
+
     #endregion
+    
     
     /// <summary>
     /// might use this in friend menu if I figure out a way to wire the menus bidirectionally
     /// </summary>
-    private async Task ViewUserPostsAsync(int userId)
+    public async Task ViewUserPostsAsync(int userId)
     {
         var fetchInAdvance = await _postService.GetByUserIdAsync(userId, 1, Constants.DefaultPageSize);
         if (fetchInAdvance.Success)
@@ -251,8 +254,8 @@ public class PostMenu : BaseMenu
                 FetchPage,
                 Printer.PrintPostPreview,
                 Constants.DefaultPageSize,
-                ViewPostAsync,
-                $"Posts featured by '{_sessionUser.Username}'");
+                ViewPostAsync
+            );
         }
         else
         {

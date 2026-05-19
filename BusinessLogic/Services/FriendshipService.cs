@@ -157,4 +157,15 @@ public class FriendshipService
 
     private bool ValidRequestResponse(FriendshipStatus status) =>
         status is FriendshipStatus.Accepted or FriendshipStatus.Declined;
+    
+    // wrapper
+    public async Task<Friendship?> GetRelationshipAsync(int userA, int userB, bool orderMatters = false)
+    {
+        return await _friendshipRepository.GetRelationshipAsync(userA, userB, orderMatters);
+    }
+
+    public async Task<bool> AreFriendsAsync(int userA, int userB)
+    {
+        return await _friendshipRepository.ExistsAsync(userA, userB, FriendshipStatus.Accepted);
+    }
 }

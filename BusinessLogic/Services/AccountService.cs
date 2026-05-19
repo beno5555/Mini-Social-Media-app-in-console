@@ -70,4 +70,39 @@ public class AccountService
         
         return userDtos;
     }
+
+    public async Task<Response<DisplayUserDto>> GetByUsername(string username)
+    {
+        var response = new Response<DisplayUserDto>();
+        
+        var user     = await _userRepository.GetByUniqueIdentifierAsync(username);
+        if (user is not null)
+        {
+            var userDto = _userMapper.ToDisplay(user);
+            response.Ok(userDto);
+        }
+        else
+        {
+            response.Fail($"No users matching {username}.");
+        }
+
+        return response;
+    }
+
+    public async Task<Response> UpdateBioAsync(int userId, string bio)
+    {
+        var response = new Response();
+        
+        var userToUpdate = await _userRepository.GetByIdAsync(userId);
+        if (userToUpdate is not null)
+        {
+            await _userRepository.UpdateBioAsync(userToUpdate, bio);
+        }
+        else
+        {
+            response.Fail("User not found");
+        }
+
+        return response;
+    }
 }

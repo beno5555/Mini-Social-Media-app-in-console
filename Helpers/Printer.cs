@@ -61,7 +61,7 @@ public static class Printer
 
     #endregion
 
-    #region Messages
+    #region ConsoleMessages
 
     public static (string? previousUsername, DateTime? previousDate) PrintMessages(
         List<DisplayMessageDto> messages,
@@ -70,7 +70,7 @@ public static class Printer
         DateTime? previousDate = null)
     {
 
-        if (!NoRecords(messages))
+        if (!NoRecords(messages, "You do not have any messages with this user."))
         {
             foreach (var message in messages)
             {
@@ -203,10 +203,15 @@ public static class Printer
 
     #region Collections
 
-    public static void PrintList<T>(List<T> list, Action<T, int> printAction, bool showIndex = true,
-        bool                                printIfNoRecords = true)
+    public static void PrintList<T>(
+        List<T>        list,
+        Action<T, int> printAction,
+        bool           showIndex        = true,
+        string?        emptyListMessage = null,
+        bool           printIfNoRecords = true
+        )
     {
-        if (!NoRecords(list, printIfNoRecords))
+        if (!NoRecords(list, emptyListMessage, printIfNoRecords))
         {
             for (int i = 0; i < list.Count; i++)
             {
@@ -221,20 +226,20 @@ public static class Printer
     public static void PrintLines(List<string> lines, string? lastLine, bool showIndex = true,
         bool                                   printIfNoRecords = true)
     {
-        PrintList(lines, PrintLine, showIndex, printIfNoRecords);
+        PrintList(lines, PrintLine, showIndex, "No options.", printIfNoRecords);
         if (lastLine is not null)
         {
             PrintLine(lastLine, 0);
         }
     }
 
-    public static bool NoRecords<T>(List<T> list, bool printIfNoRecords = true)
+    private static bool NoRecords<T>(List<T> list, string? emptyListMessage = null, bool printIfNoRecords = true)
     {
         if (list.Count == 0)
         {
             if (printIfNoRecords)
             {
-                Console.WriteLine($"There are no {typeof(T).Name} records.");
+                Console.WriteLine(emptyListMessage ?? $"There are no {typeof(T).Name} records.");
             }
 
             return true;

@@ -12,6 +12,7 @@ public class AuthenticatedMenu : BaseMenu
 
     // use this service to check if the user has any unread messages right after login
     private readonly MessageService _messageService;
+    private readonly AccountService _accountService;
 
     protected override string Title     => $"Welcome, {_sessionUser.Username}!";
     protected override string BackLabel => "Log Out";
@@ -21,6 +22,7 @@ public class AuthenticatedMenu : BaseMenu
         "Posts",
         "Friends",
         "Messages",
+        "View your profile"
     ];
 
 
@@ -29,15 +31,40 @@ public class AuthenticatedMenu : BaseMenu
         PostMenu postMenu,
         FriendMenu friendMenu,
         MessageMenu messageMenu,
-        MessageService messageService) : base (sessionUser)
+        MessageService messageService,
+        AccountService accountService) : base (sessionUser)
     {
         _postMenu = postMenu;
         _friendMenu = friendMenu;
         _messageMenu = messageMenu;
 
+        // check for unread messages
         _messageService = messageService;
+        _accountService = accountService;
+        
+        // menu bridging
+        _friendMenu.OnViewUserPosts = userId => _postMenu.ViewUserPostsAsync(userId);
+        _friendMenu.OnOpenConversation = otherUser => _messageMenu.OpenConversationAsync(otherUser);
+
+        _postMenu.OnViewUserProfile = userId => _friendMenu.ViewProfileAsync(userId);
+        
+        _messageMenu.OnViewUserProfile = userId => _friendMenu.ViewProfileAsync(userId);
     }
 
+    public override async Task<bool> Run()
+    {
+        while (true)
+        {
+            try
+            {
+                return await base.Run();
+            }
+            catch (Exception)
+            {
+                _currentMenuMessage = "Returned to menu.";
+            }
+        }
+    }
 
     protected override async Task CompleteOperation(int choice)
     {
@@ -51,6 +78,9 @@ public class AuthenticatedMenu : BaseMenu
                 break;
             case 3:
                 await _messageMenu.Run();
+                break;
+            case 4:
+                await ViewProfile();
                 break;
             default:
                 Console.WriteLine("Something went wrong");
@@ -80,5 +110,19 @@ public class AuthenticatedMenu : BaseMenu
         _sessionUser.Username = string.Empty;
         Console.WriteLine("Logging out...");
         Thread.Sleep(ProjectConstants.Constants.MenuBackTrackDelayInMilliseconds);
+    }
+
+    private async Task ViewProfile()
+    {
+        var userResponse = await _accountService.GetByUsername(_sessionUser.Username);
+
+        if (userResponse.Success)
+        {
+            await _friendMenu.ViewOwnProfileAsync(userResponse.Data!);
+        }
+        else
+        {
+            Console.WriteLine("Could not fetch profile");
+        }
     }
 }

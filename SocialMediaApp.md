@@ -578,6 +578,12 @@ Options: See Conversations, Start a New Conversation.
 
 ---
 
+## Menu flexibility
+
+Right now different menus (post, message and friend menus) do not really talk to each other. I have not yet implemented a way to chain them bidirectionally without nested dependency hell. 
+
+---
+
 ## DI Setup (Program.cs)
 
 ```csharp
@@ -652,4 +658,5 @@ services.AddScoped<MessageMenu>();
 14. [x] `FriendMenu`
 15. [x] `PostMenu`
 16. [x] `MessageMenu`
-17. [x] Wire DI in `Program.cs`
+17. [ ] `Bidirectional Menu chaining`
+18. [x] Wire DI in `Program.cs`

@@ -5,12 +5,16 @@ using social_media_console_app.BusinessLogic.Services;
 using social_media_console_app.Helpers;
 using social_media_console_app.Helpers.Inputs;
 using social_media_console_app.Menus.Base;
+using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants;
 
 namespace social_media_console_app.Menus.Authenticated;
 
 public class MessageMenu : BaseMenu
 {
     private readonly MessageService    _messageService;
+    
+    public Func<string, Task>? OnViewUserProfile { get; set; }
 
     protected override string Title => "Messages";
     protected override List<string> MenuOptions { get; } = [
@@ -46,12 +50,13 @@ public class MessageMenu : BaseMenu
         await BrowseAndSelectAsync(
             FetchFriends,
             Printer.PrintUserPreview,
-            ProjectConstants.Constants.DefaultPageSize,
+            Constants.DefaultPageSize,
             OpenConversationAsync,
-            "Open Conversation - Select a friend");
+            sectionTitle: ConsoleMessages.ConversationListMessage,
+            messageIfNoItemsFetched: ConsoleMessages.NoConversationsMessage);
     }
 
-    private async Task OpenConversationAsync(DisplayUserDto otherUser)
+    public async Task OpenConversationAsync(DisplayUserDto otherUser)
     {
         async Task<List<DisplayMessageDto>> FetchMessages(int pageNumber, int pageSize)
         {
@@ -78,7 +83,8 @@ public class MessageMenu : BaseMenu
         await BrowseMessagesAsync(
             FetchMessages,
             OnWriteMessage,
-            $"Conversation with '{otherUser.Username}'"
+            otherUser.Username,
+            sectionTitle: ConsoleMessages.ConversationLabel(otherUser.Username)
         );
     }
     
@@ -94,11 +100,11 @@ public class MessageMenu : BaseMenu
         await BrowseAndSelectAsync(
             FetchFriends,
             Printer.PrintUserPreview,
-            ProjectConstants.Constants.DefaultPageSize,
+            Constants.DefaultPageSize,
             SendMessageAsync,
-            "New Conversation - select a friend"
+            sectionTitle: ConsoleMessages.NewConversationMessage,
+            messageIfNoItemsFetched: ConsoleMessages.NoFriendsMessage
         );
-
     }
     
     #endregion
@@ -125,6 +131,7 @@ public class MessageMenu : BaseMenu
 
     private async Task<bool> PaginateMessagesAsync(
         Func<int, int, Task<List<DisplayMessageDto>>> fetchMessages,
+        string otherUsername,
         string sectionTitle
     )
     {
@@ -142,7 +149,7 @@ public class MessageMenu : BaseMenu
         {
             if (!cache.TryGetValue(currentPage, out var messages))
             {
-                messages = await fetchMessages(currentPage, ProjectConstants.Constants.DefaultConversationPageSize);
+                messages = await fetchMessages(currentPage, Constants.DefaultConversationPageSize);
                 cache[currentPage] = messages;
             }
 
@@ -162,8 +169,8 @@ public class MessageMenu : BaseMenu
                 
                 Console.WriteLine();
                 
-                bool hasNewer     = currentPage    > 1;
-                bool hasOlder = messages.Count == ProjectConstants.Constants.DefaultConversationPageSize;
+                bool hasNewer = currentPage    > 1;
+                bool hasOlder = messages.Count == Constants.DefaultConversationPageSize;
                 
                 ConversationInput input = Prompter.GetConversationInput(hasOlder, hasNewer);
 
@@ -179,6 +186,9 @@ public class MessageMenu : BaseMenu
                     case ConversationInput.Kind.Newer:
                         currentPage--;
                         break;
+                    case ConversationInput.Kind.ViewUserProfile:
+                        await OnViewUserProfile!(otherUsername);
+                        break;
                     case ConversationInput.Kind.BackToMenu:
                         run = false;
                         break;
@@ -193,13 +203,14 @@ public class MessageMenu : BaseMenu
     private async Task BrowseMessagesAsync(
         Func<int, int, Task<List<DisplayMessageDto>>> fetchMessages,
         Func<Task>                                    onWriteMessage,
+        string otherUsername,
         string                                        sectionTitle
         )
     {
         bool run = true;
         while (run)
         {
-            bool writeMessage = await PaginateMessagesAsync(fetchMessages, sectionTitle);
+            bool writeMessage = await PaginateMessagesAsync(fetchMessages, otherUsername, sectionTitle);
 
             if (writeMessage)
             {

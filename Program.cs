@@ -40,13 +40,14 @@ services.AddScoped<AuthenticatedMenu>();
 services.AddScoped<UnauthenticatedMenu>();
 services.AddScoped<MainMenu>();
 
-services.AddScoped<Seeder>();
-
 var serviceProvider = services.BuildServiceProvider();
 
 var mainMenu = serviceProvider.GetRequiredService<MainMenu>();
 await mainMenu.Run();
 
+
+// seeding
+// services.AddScoped<Seeder>();
 
 // var seeder = serviceProvider.GetRequiredService<Seeder>();
 // await seeder.SeedAsync();

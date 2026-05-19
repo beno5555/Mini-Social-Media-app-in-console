@@ -21,13 +21,15 @@
       </PackageReference>
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
       <PackageReference Include="ProjectHelperLibrary" Version="1.0.6.5" />
+      <PackageReference Include="xunit.assert" Version="2.9.3" />
+      <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
     </ItemGroup>
     
     <ItemGroup>
-        <Compile Remove="SocialMediaApp.Tests\**" />
-        <Compile Remove="SocialMediaApp.Tests\**" />
-        <EmbeddedResource Remove="SocialMediaApp.Tests\**" />
-        <None Remove="SocialMediaApp.Tests\**" />
+        <Compile Remove="social media console.Tests\**" />
+        <Compile Remove="social media console.Tests\**" />
+        <EmbeddedResource Remove="social media console.Tests\**" />
+        <None Remove="social media console.Tests\**" />
     </ItemGroup>
 
 </Project>
