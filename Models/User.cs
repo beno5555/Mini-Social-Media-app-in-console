@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace social_media_console_app.Models;
+﻿namespace social_media_console_app.Models;
 
 public class User : BaseEntity
 {

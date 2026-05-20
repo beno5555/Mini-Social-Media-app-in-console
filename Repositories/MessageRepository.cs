@@ -37,8 +37,10 @@ public class MessageRepository : BaseEntityRepository<Message>
 
     public async Task DeleteUserMessagesAsync(int userId)
     {
-        await DeleteWhereAsync(message => message.SenderUserId   == userId ||
-                                          message.ReceiverUserId == userId);
+        await _dbContext.Database.ExecuteSqlRawAsync(
+            "DELETE FROM Messages WHERE SenderUserId = {0} OR ReceiverUserId = {0}", userId);
+        // await DeleteWhereAsync(message => message.SenderUserId   == userId ||
+        //                                   message.ReceiverUserId == userId);
     }
 
     public async Task DeleteConversationAsync(int userA, int userB)

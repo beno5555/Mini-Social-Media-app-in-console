@@ -24,7 +24,9 @@ public class CommentRepository : BaseEntityRepository<Comment>
 
     public async Task DeleteUserCommentsAsync(int userId)
     {
-        await DeleteWhereAsync(comment => comment.CommenterUserId == userId);
+        await _dbContext.Database.ExecuteSqlRawAsync(
+            "DELETE FROM Comments WHERE CommenterUserId = {0}", userId);
+        // await DeleteWhereAsync(comment => comment.CommenterUserId == userId);
     }
 
     public async Task DeletePostCommentsAsync(int postId)

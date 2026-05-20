@@ -101,8 +101,10 @@ public class FriendshipRepository : BaseRepository<Friendship>
 
     public async Task DeleteUserFriendshipsAsync(int userId)
     {
-        await DeleteWhereAsync(friendship => friendship.RequesterUserId == userId ||
-                                             friendship.AddresseeUserId == userId);
+        await _dbContext.Database.ExecuteSqlRawAsync(
+            "DELETE FROM Friendships WHERE RequesterUserId = {0} OR AddresseeUserId = {0}", userId);
+        // await DeleteWhereAsync(friendship => friendship.RequesterUserId == userId ||
+        //                                      friendship.AddresseeUserId == userId);
     }
 
 }

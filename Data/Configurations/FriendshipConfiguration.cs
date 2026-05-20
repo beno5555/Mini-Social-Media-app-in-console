@@ -26,14 +26,5 @@ public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
             .WithMany(addresseeUser => addresseeUser.ReceivedFriendRequests)
             .HasForeignKey(friendship => friendship.AddresseeUserId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new Friendship
-            {
-                AddresseeUserId = 1,
-                RequesterUserId = 2,
-                CreatedAt = new DateTime(2026, 5, 14, 18, 43, 58, DateTimeKind.Utc),
-                FriendshipStatus = FriendshipStatus.Accepted
-            });
     }
 }

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ProjectHelperLibrary.Response;
 using ProjectHelperLibrary.Utilities;
 using ProjectHelperLibrary.Validations;
+using social_media_console_app.Helpers.Exceptions;
 using social_media_console_app.Helpers.Inputs;
 using social_media_console_app.ProjectConstants;
 

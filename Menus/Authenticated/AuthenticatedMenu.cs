@@ -1,5 +1,6 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
+using social_media_console_app.Helpers.Exceptions;
 using social_media_console_app.Menus.Base;
 
 namespace social_media_console_app.Menus.Authenticated;
@@ -59,9 +60,15 @@ public class AuthenticatedMenu : BaseMenu
             {
                 return await base.Run();
             }
-            catch (Exception)
+            catch (NavigateToMainMenuException)
             {
                 _currentMenuMessage = "Returned to menu.";
+            }
+            catch (AccountDeletedException)
+            {
+                _exitOnBack = true;
+                OnBack();
+                return false;
             }
         }
     }
@@ -106,10 +113,15 @@ public class AuthenticatedMenu : BaseMenu
 
     private void LogOut()
     {
-        _sessionUser.UserId = 0;
-        _sessionUser.Username = string.Empty;
+        ClearSession();
         Console.WriteLine("Logging out...");
         Thread.Sleep(ProjectConstants.Constants.MenuBackTrackDelayInMilliseconds);
+    }
+
+    private void ClearSession()
+    {
+        _sessionUser.UserId = 0;
+        _sessionUser.Username = string.Empty;
     }
 
     private async Task ViewProfile()

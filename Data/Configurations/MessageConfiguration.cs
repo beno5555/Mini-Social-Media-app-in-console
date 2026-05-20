@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using social_media_console_app.Models;
+using social_media_console_app.ProjectConstants;
 
 namespace social_media_console_app.Data.Configurations;
 
@@ -13,7 +14,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
 
         builder.Property(message => message.MessageContent)
             .IsRequired()
-            .HasMaxLength(ProjectConstants.Constants.MessageMaxLength);
+            .HasMaxLength(Constants.MessageMaxLength);
 
         // service implementation must manually delete the user's messages before deleting the user.
         builder.HasOne(message => message.SenderUser)
@@ -25,17 +26,5 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .WithMany(receiverUser => receiverUser.ReceivedMessages)
             .HasForeignKey(message => message.ReceiverUserId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new Message
-            {
-                Id = 1,
-                SenderUserId = 2, 
-                ReceiverUserId = 1,
-                MessageContent = "Hello first admin! i am the second admin",
-                IsRead = false,
-                CreatedAt = new DateTime(2026, 5, 14, 18, 47, 58, DateTimeKind.Utc),
-                
-            });
     }
 }

@@ -27,17 +27,23 @@ public class AccountService
     {
         var response = new Response();
 
-        var userToDelete = await _userRepository.GetByIdAsync(userId);
+        await _userRepository.ExecuteInTransactionAsync(async () =>
+        {
+            _userRepository.ClearTracker();
+            await DeleteUserRelatedData(userId);
+            
+            var userToDelete = await _userRepository.GetByIdAsync(userId);
 
-        if (userToDelete is not null)
-        {
-            await DeleteUserRelatedData(userToDelete.Id);
-            await _userRepository.DeleteAsync(userToDelete);
-        }
-        else
-        {
-            response.Fail("User not found.");
-        }
+            if (userToDelete is not null)
+            {
+                await _userRepository.DeleteAsync(userToDelete);
+                Console.WriteLine("deleted user");
+            }
+            else
+            {
+                response.Fail("User not found.");
+            }
+        });
 
         return response;
     }

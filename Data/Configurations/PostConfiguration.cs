@@ -24,16 +24,5 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .WithMany(user => user.Posts)
             .HasForeignKey(post => post.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasData(
-            new Post
-            {
-                Id = 1,
-                UserId = 1,
-                PostTitle = "Initial admin post",
-                PostContent = "this is initial admin post",
-                CreatedAt = new DateTime(2026, 5, 14, 18, 30, 58, DateTimeKind.Utc)
-            }
-        );
     }
 }

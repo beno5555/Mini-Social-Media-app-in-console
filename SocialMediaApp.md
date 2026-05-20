@@ -24,67 +24,41 @@ Microsoft.Extensions.DependencyInjection
 
 ## Features
 
-- Register and login (with password hashing)
-- Create, view, and delete posts (text only)
+- Register and login with password hashing
+- Create, view, and delete posts
 - Comment on posts; delete own comments
 - Send, accept, decline, and cancel friend requests; view friends list; remove friends; browse and search users
-- Send and view messages between users; paginated conversation view with chat-style rendering
+- Send and view messages between friends; paginated conversation view with chat-style rendering
+- View any user's profile with context-aware actions based on friendship status
+- Cross-menu navigation — jump between posts, profiles, and conversations without retracing steps
+- Universal home key — press `Escape` or type `exit` to return to the main menu from anywhere
+- Delete account with full data cleanup
 
 ---
 
 ## Architecture
 
 ```
-Entities / Models
+Models
 DbContext + Configurations
-Repositories (concrete classes, no interfaces)
+Repositories
 Services
-Helpers (Printer, Prompter, DtoPrompter, PaginatedInput, ConversationInput)
+Helpers
 Menus
-Program.cs (DI wiring)
+Program.cs
 ```
 
----
+### Layers
 
-## Entities
+**Models** — plain entity classes and enums.
 
-All entities except `Friendship` inherit from `BaseEntity`:
+**Repositories** — concrete classes, no interfaces. `BaseRepository<T>` and `BaseEntityRepository<T>` provide shared query, pagination, and transaction logic. Specific repositories extend these with domain queries.
 
-```csharp
-public abstract class BaseEntity
-{
-    public int Id { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-```
+**Services** — business logic. Consume repositories and mappers. Return `Response<T>` or `Response` when failure states are possible; raw values or `void` otherwise.
 
-| Entity     | Properties                                                                    |
-|------------|-------------------------------------------------------------------------------|
-| User       | Username, Email, PasswordHash, PasswordSalt, Bio, DateOfBirth                 |
-| Post       | UserId, Content                                                               |
-| Comment    | UserId, PostId, Content                                                       |
-| Friendship | RequesterId, AddresseeId, Status (enum: Pending/Accepted/Declined), CreatedAt |
-| Message    | SenderId, ReceiverId, MessageContent, IsRead, SentAt                          |
+**Helpers** — `Printer` (static, console output), `Prompter` (static, input handling), `DtoPrompter` (static, DTO construction from user input), `PaginatedInput` and `ConversationInput` (input shape structs).
 
-### Notes
-- `Friendship` does not inherit `BaseEntity` — its PK is `(RequesterId, AddresseeId)`. `CreatedAt` is declared manually.
-- Enums (`FriendshipStatus`) are stored as strings in the database.
-- `User.DateOfBirth` validated via check constraint and at menu level. Age must be between 13 and 130.
-- `Message` uses `SentAt` instead of `CreatedAt` and `MessageContent` instead of `Content` — not inheriting `BaseEntity` naming conventions for domain clarity.
-
-### FK Cascade Behavior
-
-SQL Server disallows multiple cascade paths. Only `User → Posts` uses `Cascade`. All other relationships use `Restrict` with manual cleanup on account deletion.
-
-| Relationship                   | Behaviour |
-|--------------------------------|-----------|
-| User → Posts                   | Cascade   |
-| Post → Comments                | Restrict  |
-| User → Comments                | Restrict  |
-| User → Messages (Sender)       | Restrict  |
-| User → Messages (Receiver)     | Restrict  |
-| User → Friendships (Requester) | Restrict  |
-| User → Friendships (Addressee) | Restrict  |
+**Menus** — `BaseMenu` provides the run loop, pagination, and navigation scaffolding. Specific menus handle user-facing operations.
 
 ---
 
@@ -119,24 +93,10 @@ SQL Server disallows multiple cascade paths. Only `User → Posts` uses `Cascade
 /BusinessLogic
     /Dtos
         /CommentDtos
-            CreateCommentDto.cs
-            DisplayCommentDto.cs
         /MessageDtos
-            CreateMessageDto.cs
-            DisplayMessageDto.cs
         /PostDtos
-            CreatePostDto.cs
-            DisplayPostDto.cs
         /UserDtos
-            DisplayUserDto.cs
-            LoginDto.cs
-            RegisterDto.cs
-            SessionUser.cs
     /Mappers
-        CommentMapper.cs
-        MessageMapper.cs
-        PostMapper.cs
-        UserMapper.cs
     /Responses
         Response.cs
         Response<T>.cs
@@ -171,9 +131,46 @@ Program.cs
 
 ---
 
-## DbContext
+## Entities
 
-Connection string is hardcoded in `OnConfiguring`. `ApplyConfigurationsFromAssembly` picks up all `IEntityTypeConfiguration` classes automatically.
+All entities except `Friendship` and `Message` inherit from `BaseEntity`:
+
+```csharp
+public abstract class BaseEntity
+{
+    public int Id { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+```
+
+| Entity     | Properties                                                                    |
+|------------|-------------------------------------------------------------------------------|
+| User       | Username, Email, PasswordHash, PasswordSalt, Bio, DateOfBirth                 |
+| Post       | UserId, Content                                                               |
+| Comment    | UserId, PostId, Content                                                       |
+| Friendship | RequesterId, AddresseeId, Status (enum: Pending/Accepted/Declined), CreatedAt |
+| Message    | SenderId, ReceiverId, MessageContent, IsRead, SentAt                          |
+
+- `Friendship` does not inherit `BaseEntity` — its PK is `(RequesterId, AddresseeId)`.
+- `FriendshipStatus` is stored as a string in the database.
+- `User.DateOfBirth` is validated via check constraint and at menu level. Age must be between 13 and 130.
+- `Message` uses `SentAt` and `MessageContent` instead of `BaseEntity` naming conventions for domain clarity.
+
+### FK Cascade Behavior
+
+SQL Server disallows multiple cascade paths. `User → Posts` and `Post → Comments` use `Cascade`. All other relationships use `Restrict` with manual cleanup on account deletion.
+
+| Relationship                   | Behaviour |
+|--------------------------------|-----------|
+| User → Posts                   | Cascade   |
+| Post → Comments                | Cascade   |
+| User → Comments                | Restrict  |
+| User → Messages (Sender)       | Restrict  |
+| User → Messages (Receiver)     | Restrict  |
+| User → Friendships (Requester) | Restrict  |
+| User → Friendships (Addressee) | Restrict  |
+
+Account deletion cleanup order: comments on other users' posts → messages → friendships → user. Posts and their comments cascade automatically.
 
 ---
 
@@ -187,72 +184,26 @@ Connection string is hardcoded in `OnConfiguring`. `ApplyConfigurationsFromAssem
 - `GetFirstAsync(predicate)` — returns `T?`
 - `AddAsync(T entity)`
 - `DeleteAsync(T entity)`
-- `DeleteWhereAsync(predicate)` — uses `ExecuteDeleteAsync`; bypasses change tracker; no `SaveChangesAsync` needed
-- `ExecuteInTransactionAsync(Func<Task> operation)` — public; wraps operations in a DB transaction; safe to call from any repository since all share the same scoped `DbContext`
+- `DeleteWhereAsync(predicate)` — uses `ExecuteDeleteAsync`; bypasses change tracker
+- `ExecuteInTransactionAsync(Func<Task> operation)` — wraps operations in a DB transaction; safe to call from any repository since all share the same scoped `DbContext`
+- `ClearTracker()` — detaches all tracked entities; used before bulk delete sequences to avoid change tracker conflicts
 
 ### BaseEntityRepository\<T\> where T : BaseEntity
 
 Extends `BaseRepository<T>`. Adds:
 
-- `GetByIdAsync(int id)` — uses `FindAsync`
-- `ExistsAsync(int id)` — translates to `SELECT 1 WHERE EXISTS`
+- `GetByIdAsync(int id)`
+- `FindAsync(int id)` — uses `FindAsync` directly without includes; used when a clean untracked instance is needed
+- `ExistsAsync(int id)`
 - `DeleteAsync(int id)`
 
 ### Pagination
 
-`GetWhereAsync` accepts optional `page` and `pageSize`. `Skip/Take` applied and translated to SQL when both provided.
+`GetWhereAsync` accepts optional `page` and `pageSize`. `Skip/Take` is applied and translated to SQL when both are provided.
 
 ### SaveChanges Strategy
 
-`SaveChangesAsync` called in the repository. For atomic multistep operations, wrap in a transaction via `ExecuteInTransactionAsync` at the service layer.
-
----
-
-## Specific Repositories
-
-### UserRepository
-Extends `BaseEntityRepository<User>`. `Query()` includes posts and comments only.
-
-- `GetByEmailAsync(string email)`
-- `GetWithPostsAsync(Expression<Func<User, bool>> predicate, int recentPostsCount = 10)`
-- `GetWithPostsByUsernameAsync(string username, int recentPostsCount = 10)`
-- `SearchByUsernameAsync(string query, int excludeUserId, int? page, int? pageSize)`
-- `GetFriendsByConversationStatusAsync(int userId, bool hasConversation, int? page, int? pageSize)` — single method with a flag; `true` returns friends with existing conversations ordered by most recently messaged; `false` returns friends with no conversation. Uses a single `GetWhereAsync` predicate querying `Friendships` and `Messages` directly — no in-memory filtering.
-
-### PostRepository
-Extends `BaseEntityRepository<Post>`. `Query()` includes `User` only — comments excluded to avoid change tracker conflicts on deletion.
-
-- `GetByUserIdAsync(int userId, int? page, int? pageSize)`
-- `GetFeedAsync(List<int> friendIds, int? page, int? pageSize)`
-- `DeletePostCommentsAsync(int postId)` — uses `DeleteWhereAsync` (`ExecuteDeleteAsync`); called before post deletion in service
-
-### CommentRepository
-Extends `BaseEntityRepository<Comment>`. `Query()` includes `User` and `Post`.
-
-- `GetByPostIdAsync(int postId, int? page, int? pageSize)`
-- `GetByUserIdAsync(int userId, int? page, int? pageSize)`
-- `DeleteUserCommentsAsync(int userId)` — uses `DeleteWhereAsync`
-
-### FriendshipRepository
-Extends `BaseRepository<Friendship>` (composite PK). `Query()` includes `Requester` and `Addressee`.
-
-- `GetRelationshipAsync(int userA, int userB)`
-- `GetAsync(int userId, FriendshipStatus? status)`
-- `GetPendingRequestsAsync(int userId)`
-- `GetFriendsAsync(int userId)`
-- `GetSentRequestsAsync(int userId)`
-- `ExistsAsync(int userA, int userB, FriendshipStatus? status)`
-- `UpdateStatusAsync(Friendship friendship, FriendshipStatus status)`
-- `DeleteUserFriendshipsAsync(int userId)` — uses `DeleteWhereAsync`
-
-### MessageRepository
-Extends `BaseEntityRepository<Message>`. `Query()` includes `Sender` and `Receiver`.
-
-- `GetConversationAsync(int userA, int userB, int? page, int? pageSize)` — ordered by `SentAt` descending
-- `HasUnreadAsync(int userId)` — returns `bool`
-- `MarkAsReadAsync(List<Message> messages)`
-- `MarkConversationAsReadAsync(int senderId, int receiverId)` — uses `ExecuteUpdateAsync`
-- `DeleteUserMessagesAsync(int userId)` — uses `DeleteWhereAsync`
+`SaveChangesAsync` is called in the repository. For atomic multistep operations, wrap in a transaction via `ExecuteInTransactionAsync` at the service layer. `ExecuteDeleteAsync` bypasses the change tracker and does not require `SaveChangesAsync`.
 
 ---
 
@@ -265,212 +216,17 @@ public class Response
 {
     public bool Success { get; set; } = true;
     public string? Message { get; set; }
-
-    public void Ok() => Success = true;
-    public virtual void Fail(string message) { Success = false; Message = message; }
 }
 
 public class Response<T> : Response
 {
     public T? Data { get; set; }
-
-    public void Ok(T data) { Success = true; Data = data; }
-    public override void Fail(string message) { Success = false; Message = message; Data = default; }
 }
 ```
 
-Empty collections are not a failure — `Ok()` with an empty list. Menus handle "no results" display. Services always populate `Message` on both success and failure paths where `Response` is used.
-
----
-
-## DTOs
-
-```csharp
-public record DisplayUserDto(int Id, string Username, string? Bio, DateTime DateOfBirth, DateTime CreatedAt);
-public record DisplayPostDto(int Id, string Username, string Content, DateTime CreatedAt, List<DisplayCommentDto>? Comments = null);
-public record DisplayCommentDto(int Id, string Username, string Content, DateTime CreatedAt);
-public record DisplayMessageDto(string MessageContent, string SenderUsername, DateTime SentAt, bool IsRead);
-```
-
-- `DisplayMessageDto` has no `Id` — no per-message actions exist in the menu layer.
-- `DisplayPostDto.Comments` is nullable — `null` means not fetched; empty list means fetched with no results.
-- `Username` is unique and used for ownership checks — no need to expose `UserId` in display DTOs.
-- Internal IDs included in other DTOs for operation handling but never rendered in console output.
-
-### SessionUser
-
-Scoped. Mutated on login, cleared on logout.
-
-```csharp
-public class SessionUser
-{
-    public int UserId { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public bool IsLoggedIn => UserId != 0;
-}
-```
-
----
-
-## Services
-
-### AuthService
-- `RegisterAsync(RegisterDto dto) → Task<Response>`
-- `LoginAsync(LoginDto dto) → Task<Response<SessionUser>>`
-
-### AccountService
-- `GetByUsernameAsync(string username) → Task<Response<DisplayUserDto>>`
-- `SearchUsersAsync(string query, int currentUserId, int? page, int? pageSize) → Task<List<DisplayUserDto>>`
-- `DeleteAccountAsync(int userId) → Task` — no failure state
-  - Calls `DeleteUserRelatedDataAsync(int userId)` — deletes comments, messages, friendships via `DeleteWhereAsync` in that order
-
-### PostService
-- `CreatePostAsync(CreatePostDto dto) → Task<Response>`
-- `DeletePostAsync(int postId) → Task<Response>` — wraps comment deletion and post deletion in `ExecuteInTransactionAsync`; both use `ExecuteDeleteAsync`
-- `GetFeedAsync(int userId, int? page, int? pageSize) → Task<List<DisplayPostDto>>` — no failure state
-- `GetByUserIdAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayPostDto>>>`
-
-### CommentService
-- `AddCommentAsync(CreateCommentDto dto) → Task<Response>`
-- `DeleteCommentAsync(int commentId, int userId) → Task<Response>`
-- `GetByPostAsync(int postId, int? page, int? pageSize) → Task<Response<List<DisplayCommentDto>>>`
-
-### FriendshipService
-- `SendRequestAsync(int requesterId, int addresseeId) → Task<Response>`
-- `RespondToRequestAsync(int requesterId, int addresseeId, int currentUserId, FriendshipStatus status) → Task<Response>`
-- `RemoveRelationshipAsync(int userId, int friendId) → Task<Response>`
-- `GetFriendsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
-- `GetPendingRequestsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
-- `GetSentRequestsAsync(int userId, int? page, int? pageSize) → Task<Response<List<DisplayUserDto>>>`
-
-### MessageService
-- `SendMessageAsync(CreateMessageDto dto) → Task<Response>`
-- `GetConversationAsync(int currentUserId, int responderUserId, int? page, int? pageSize) → Task<Response<List<DisplayMessageDto>>>` — results reversed in memory per page so messages print oldest-to-newest within each page
-- `HasUnreadAsync(int userId) → Task<bool>`
-- `GetConversationFriendsAsync(int userId, int? page, int? pageSize) → Task<List<DisplayUserDto>>` — delegates to `UserRepository.GetFriendsByConversationStatusAsync(..., hasConversation: true)`
-- `GetNonConversationFriendsAsync(int userId, int? page, int? pageSize) → Task<List<DisplayUserDto>>` — delegates to `UserRepository.GetFriendsByConversationStatusAsync(..., hasConversation: false)`
-
----
-
-## Constants
-
-```csharp
-public static class Constants
-{
-    public const int EmailMinLength    = 10;
-    public const int EmailMaxLength    = 100;
-    public const int UsernameMinLength = EmailMinLength;
-    public const int UsernameMaxLength = EmailMaxLength;
-
-    public const int PasswordMinLength     = 6;
-    public const int PasswordMaxLength     = 100;
-    public const int PasswordHashMaxLength = 44;
-    public const int PasswordSaltMaxLength = 44;
-
-    public const int BioMaxLength             = 300;
-    public const int PostContentMaxLength     = 3000;
-    public const int PostContentPreviewLength = 100;
-    public const int CommentMaxLength         = 500;
-    public const int MessageMaxLength         = 1000;
-
-    public const int MinAge = 13;
-    public const int MaxAge = 130;
-
-    public const int DefaultPageSize            = 3;
-    public const int DefaultConversationPageSize = 20;
-
-    public const string EmailRegexPattern    = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-    public const string UsernameRegexPattern = "^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$";
-
-    public const int MenuBackTrackDelayInMilliseconds = 300;
-
-    // Chat rendering
-    public const int    ChatWidth                = 80;
-    public const char   ChatBorder               = '|';
-    public const double OwnMessageIndentPercent      = 0.3;
-    public const double OtherMessageMaxWidthPercent  = 0.6;
-
-    // Console colors
-    public const ConsoleColor OwnMessageColor     = ConsoleColor.Cyan;
-    public const ConsoleColor OtherMessageColor   = ConsoleColor.Green;
-    public const ConsoleColor TimestampColor      = ConsoleColor.DarkGray;
-    public const ConsoleColor MessageContentColor = ConsoleColor.White;
-}
-```
-
----
-
-## Helpers
-
-### Printer (static)
-
-- `PrintUser(DisplayUserDto user, int index)`
-- `PrintUserDetail(DisplayUserDto user)`
-- `PrintPost(DisplayPostDto post, int index)`
-- `PrintPostDetail(DisplayPostDto post)`
-- `PrintComment(DisplayCommentDto comment, int index)`
-- `PrintMessage(DisplayMessageDto message, string currentUsername, string? previousMessageUsername = null)` — chat-style aligned output; own messages indented by `OwnMessageIndentPercent`; other messages capped at `OtherMessageMaxWidthPercent`; content on new line below author + timestamp; long content wraps within bounds; colored output via `PrintColored`
-- `PrintMessages(List<DisplayMessageDto> messages, string currentUsername)` — iterates messages, tracks previous sender for grouping separator and day separator
-- `PrintChatBorder()` — prints `|---|` borderline at `ChatWidth`
-- `PrintDaySeparator(DateTime date)` — centered date label inside chat borders; printed by `PrintMessages` when day changes between consecutive messages
-- `PrintList<T>(List<T> list, Action<T, int> printAction, bool showIndex = true)` — passes `0` as index when `showIndex` is false; individual print methods treat `0` as "no index"
-- `PrintLines(List<string> lines, string? lastLine)`
-- `PrintLine(string message, int index)`
-- `NoRecords<T>(List<T> list)` — prints "no records" and returns `true` if empty
-- `PrintColored(string text, ConsoleColor color)` — private helper
-
-### Prompter (static)
-
-```csharp
-public static string   GetStringInput(string prompt, int min, int max, string? regexPattern = null)
-public static string?  GetOptionalStringInput(string prompt, int min, int max, string? regexPattern = null)
-public static DateTime GetDateInput(string prompt, int minAge, int maxAge)
-public static int      GetIntInput(string prompt, int min, int max)
-public static bool     DoubleCheckIntent(string prompt)
-public static PaginatedInput    GetPaginatedInput(int itemCount, bool hasPrevious, bool hasNext)
-public static ConversationInput GetConversationInput(bool hasPrevious, bool hasNext)
-```
-
-`GetConversationInput` uses `Console.ReadKey(intercept: true)` — single keypress, no Enter required. Keys: `r` reply, `n` next/older, `p` previous/newer, `0` back.
-
-### DtoPrompter (static)
-
-Wraps prompting of specific DTO properties and returns the constructed DTO. Example:
-
-- `Message(int senderId, int receiverId) → CreateMessageDto`
-
-### PaginatedInput (readonly struct)
-
-```csharp
-public readonly struct PaginatedInput
-{
-    public enum Kind { Item, Next, Previous, BackToMenu }
-    public Kind Type  { get; }
-    public int  Index { get; }
-
-    public static PaginatedInput Item(int index) => new(Kind.Item, index);
-    public static PaginatedInput Next()          => new(Kind.Next);
-    public static PaginatedInput Previous()      => new(Kind.Previous);
-    public static PaginatedInput BackToMenu()    => new(Kind.BackToMenu);
-}
-```
-
-### ConversationInput (readonly struct)
-
-Used exclusively by `MessageMenu.PaginateMessagesAsync`.
-
-```csharp
-public readonly struct ConversationInput
-{
-    public enum Kind { WriteMessage = 1, Next, Previous, BackToMenu }
-    public Kind Type { get; }
-
-    public static ConversationInput WriteMessage() => new(Kind.WriteMessage);
-    public static ConversationInput Next()         => new(Kind.Next);
-    public static ConversationInput Previous()     => new(Kind.Previous);
-    public static ConversationInput BackToMenu()   => new(Kind.BackToMenu);
-}
-```
+- Empty collections are not failures — `Ok()` with an empty list.
+- `Response` is omitted when no failure state is possible — methods return raw data or `void`.
+- Services always populate `Message` on both success and failure paths where `Response` is used.
 
 ---
 
@@ -489,132 +245,60 @@ MainMenu (outer loop)
 
 ### BaseMenu
 
-Abstract base. All menus except for MainMenu inherit from it.
+All menus except `MainMenu` inherit from `BaseMenu`.
 
-- `_sessionUser` — available to all menus
-- `Title` — abstract; used as default section header
-- `MenuOptions` — abstract `List<string>`; rendered by `Run()`
-- `BackLabel` — virtual; defaults to `"Back to menu"`
-- `ExitRoute` — always `0`
-- `_exitOnBack` — `bool`; `Run()` returns this; `UnauthenticatedMenu` sets to `true` on exit
-- `CompleteOperation(int choice)` — abstract; called by `Run()` for each non-exit choice
-- `OnEnter(string? currentMenuMessage)` — virtual; clears console and prints title; `AuthenticatedMenu` overrides to check unread messages
-- `OnBack()` — virtual hook; `AuthenticatedMenu` overrides to clear `SessionUser`
-- `Run()` — virtual; prints options, reads choice, calls `CompleteOperation`; returns `_exitOnBack`
-- `ConfirmAction(string prompt, Func<Task> action)` — calls `Prompter.DoubleCheckIntent`; executes action on confirmation
+- `Run()` — prints options, reads input, calls `CompleteOperation`; returns `_exitOnBack`
+- `OnEnter(string? currentMenuMessage)` — clears console and prints title; `AuthenticatedMenu` overrides to check unread messages
+- `OnBack()` — hook called on exit; `AuthenticatedMenu` overrides to clear `SessionUser`
+- `PaginateAsync<T>` — generic paginator with per-call page cache
+- `BrowseAndSelectAsync<T>` — wraps `PaginateAsync` with optional item selection and re-entry after action
 
-#### PaginateAsync
+### Cross-Menu Navigation
 
-```csharp
-protected async Task<T?> PaginateAsync<T>(
-    Func<int, int, Task<List<T>>> fetchPage,
-    Action<T, int>                printItem,
-    int                           pageSize,
-    string?                       sectionTitle     = null,
-    bool                          shouldSelectItem = true)
+Menus expose nullable delegate properties for capabilities they need but do not own. `AuthenticatedMenu` wires all delegates in its constructor.
+
+```
+PostMenu.OnViewUserProfile    → FriendMenu.ViewUserProfileAsync
+FriendMenu.OnViewUserPosts    → PostMenu.ViewUserPostsAsync
+FriendMenu.OnOpenConversation → MessageMenu.OpenConversationAsync
+MessageMenu.OnViewUserProfile → FriendMenu.ViewUserProfileAsync
 ```
 
-- Caches pages in `Dictionary<int, List<T>>` per call
-- `hasNext` inferred as `items.Count == pageSize`
-- `shouldSelectItem = false` — disables item selection, numbering omitted via `PrintList(showIndex: false)`
-- Returns `null` on `BackToMenu`; returns selected item on `Item`
+`FriendMenu.ViewUserProfileAsync` resolves the correct profile view at call time by checking friendship status, then routing to `ViewFriendProfileAsync` or `ViewSearchedUserProfileAsync` accordingly. Options in each profile view are built dynamically — including context-aware friend request actions (send / cancel / accept / decline) based on the current relationship state.
 
-#### BrowseAndSelectAsync
+### Navigation Exceptions
 
-```csharp
-protected async Task BrowseAndSelectAsync<T>(
-    Func<int, int, Task<List<T>>> fetchPage,
-    Action<T, int>                printItem,
-    int                           pageSize,
-    Func<T, Task>?                onSelect             = null,
-    string?                       sectionTitle         = null,
-    string?                       selectedSectionTitle = null)
-```
+Two exceptions handle stack-unwinding navigation:
 
-- `onSelect` nullable — omit for read-only browsing
-- After `onSelect` completes, loop re-enters `PaginateAsync` with a fresh cache
-- `shouldSelectItem` derived from `onSelect is not null`
-
-### PostMenu
-
-Options: Create Post, View Feed, My Posts.
-
-- **Create Post** — prompts content, calls `PostService.CreatePostAsync`
-- **View Feed** — `BrowseAndSelectAsync` → `ViewPostAsync`
-- **My Posts** — `BrowseAndSelectAsync` → `ViewPostAsync`
-
-**ViewPostAsync(DisplayPostDto post)**
-- Options: View Comments, Add Comment, Delete Post (owner only)
-- **View Comments** — `BrowseAndSelectAsync` → `ViewCommentAsync`
-
-**ViewCommentAsync(DisplayCommentDto comment)**
-- Shows comment; if owner, offers Delete option; if not owner, shows Back only
-
-### FriendMenu
-
-Options: View Friends, Pending Requests, Sent Requests, Find Users, Remove Friend.
-
-### MessageMenu
-
-Options: See Conversations, Start a New Conversation.
-
-- **See Conversations** — `BrowseAndSelectAsync` over friends with existing conversations → `OpenConversationAsync`
-- **Start a New Conversation** — `BrowseAndSelectAsync` over friends with no conversation → `SendMessageAsync`
-
-**OpenConversationAsync(DisplayUserDto otherUser)**
-- Calls `BrowseMessagesAsync`
-
-**BrowseMessagesAsync**
-- Loop: calls `PaginateMessagesAsync`; if user chose to write, calls `onWriteMessage`; re-enters on reply, exits on back
-
-**PaginateMessagesAsync**
-- Own cache per call — fresh on each re-entry (ensures sent message appears on page 1 after reply)
-- Prints chat borders and messages via `Printer.PrintChatBorder` and `Printer.PrintMessages`
-- Input via `Prompter.GetConversationInput` — single keypress
-- Returns `bool` — `true` if user chose to write a message
-
-**SendMessageAsync(DisplayUserDto receiverUser)**
-- Prompts via `DtoPrompter.Message`; calls `MessageService.SendMessageAsync`; no manual message print — conversation re-fetches on next `PaginateMessagesAsync` entry
+- `NavigateToRootException` — thrown from input handlers on `Escape` keypress or `exit` text input; caught by `AuthenticatedMenu.Run()` to snap back to the authenticated menu from any depth
+- `AccountDeletedException` — thrown after successful account deletion; caught by `AuthenticatedMenu.Run()` to clear the session and return to `UnauthenticatedMenu`
 
 ---
 
-## Menu flexibility
+## Helpers
 
-Right now different menus (post, message and friend menus) do not really talk to each other. I have not yet implemented a way to chain them bidirectionally without nested dependency hell. 
+### Printer (static)
+
+Handles all console output. Print methods for users, posts, comments, and messages. Chat rendering uses percentage-based layout constants — own messages are right-indented, other messages are left-capped. `PrintMessages` handles day separators and sender grouping. `PrintList` accepts a `showIndex` flag — passes `0` as index when disabled; individual print methods treat `0` as no index.
+
+### Prompter (static)
+
+Handles all console input. `GetPaginatedInput` and `GetConversationInput` use single-keypress reads. All input methods check for `Escape` or `exit` and throw `NavigateToRootException` where applicable.
+
+### DtoPrompter (static)
+
+Wraps prompting of specific DTO fields and returns the constructed DTO.
 
 ---
 
-## DI Setup (Program.cs)
+## DI Setup
+
+All repositories, mappers, services, and menus are registered as `Scoped`. `SessionUser` is scoped — mutated on login, cleared on logout or account deletion.
 
 ```csharp
 services.AddDbContext<AppDbContext>();
-
-services.AddScoped<UserRepository>();
-services.AddScoped<PostRepository>();
-services.AddScoped<CommentRepository>();
-services.AddScoped<FriendshipRepository>();
-services.AddScoped<MessageRepository>();
-
-services.AddScoped<UserMapper>();
-services.AddScoped<PostMapper>();
-services.AddScoped<CommentMapper>();
-services.AddScoped<MessageMapper>();
-
-services.AddScoped<AuthService>();
-services.AddScoped<AccountService>();
-services.AddScoped<PostService>();
-services.AddScoped<CommentService>();
-services.AddScoped<FriendshipService>();
-services.AddScoped<MessageService>();
-
+// repositories, mappers, services, menus — all AddScoped
 services.AddScoped<SessionUser>();
-
-services.AddScoped<MainMenu>();
-services.AddScoped<UnauthenticatedMenu>();
-services.AddScoped<AuthenticatedMenu>();
-services.AddScoped<PostMenu>();
-services.AddScoped<FriendMenu>();
-services.AddScoped<MessageMenu>();
 ```
 
 ---
@@ -622,41 +306,17 @@ services.AddScoped<MessageMenu>();
 ## Key Design Decisions
 
 - No interfaces — concrete repository, service, and mapper classes only.
-- `BaseRepository<T>` / `BaseEntityRepository<T>` split — allows composite PK entities to share base methods without forcing integer PK.
-- `Query()` virtual on `BaseRepository` — specific repositories override to define default includes.
-- `PostRepository.Query()` excludes comments — including them causes EF change tracker conflicts when deleting posts with `Restrict` on `Post → Comments`. `ExecuteDeleteAsync` bypasses the change tracker; wrapping in `ExecuteInTransactionAsync` ensures atomicity.
-- `DeleteWhereAsync` uses `ExecuteDeleteAsync` — bypasses change tracker; no `SaveChangesAsync` needed; used for bulk cleanup.
-- Manual cleanup order on account deletion: comments → messages → friendships → user. Posts cascade automatically.
-- `ExecuteInTransactionAsync` is public on `BaseRepository` — callable from any injected repository in a service; safe because all repositories share the same scoped `DbContext`.
-- `Response` wrapper omitted when no failure state is possible — `GetFeedAsync`, `SearchUsersAsync`, `HasUnreadAsync`, `DeleteAccountAsync`, `GetConversationFriendsAsync`, `GetNonConversationFriendsAsync` return raw data or `void`.
-- `GetFriendsByConversationStatusAsync` in `UserRepository` — not in `MessageRepository`; the query fetches `User` entities and belongs to `UserRepository`. Not split into two methods — a `bool hasConversation` flag keeps the predicate and ordering in one place with minimal duplication.
-- `GetConversationAsync` fetches descending, reversed per page in service — page 1 shows most recent messages; within a page messages print oldest-to-newest.
-- `ConversationInput` separate from `PaginatedInput` — different input shape (single keypress vs numeric), different navigation semantics (older/newer vs next/previous), scoped to `MessageMenu` only.
-- `DisplayMessageDto` has no `Id` — no per-message actions in the menu layer.
-- `PrintList` `showIndex` flag — controls numbering without changing `Action<T, int>` delegate signature; print methods treat index `0` as "no index".
-- Chat rendering uses percentage-based layout constants — `OwnMessageIndentPercent` and `OtherMessageMaxWidthPercent` overlap intentionally for a natural chat appearance. `ChatWidth` capped at `Math.Min(Console.WindowWidth, Constants.ChatWidth)`.
-- `DtoPrompter` separates DTO construction prompting from general input prompting — `Prompter` handles primitives, `DtoPrompter` handles domain objects.
+- `BaseRepository<T>` / `BaseEntityRepository<T>` split — composite PK entities share base methods without forcing an integer PK.
+- `Query()` virtual override — specific repositories define their own default includes.
+- `PostRepository.Query()` excludes comments — including them causes EF change tracker conflicts when deleting posts with `ExecuteDeleteAsync`.
+- `DeleteWhereAsync` uses `ExecuteDeleteAsync` — bypasses change tracker; used for all bulk cleanup.
+- `ExecuteInTransactionAsync` is public — callable from any injected repository in a service; safe because all repositories share the same scoped `DbContext`.
+- `ClearTracker()` called before account deletion — prevents change tracker conflicts from navigation properties loaded earlier in the session.
+- `Response` wrapper omitted when no failure state is possible.
+- `GetFriendsByConversationStatusAsync` in `UserRepository` — single method with a `bool hasConversation` flag to avoid duplication.
+- `GetConversationAsync` fetches descending, reversed per page in service — page 1 shows most recent; within a page messages print oldest-to-newest.
+- `ConversationInput` separate from `PaginatedInput` — different input shape, different navigation semantics, scoped to `MessageMenu` only.
+- `DisplayMessageDto` has no `Id` — no per-message actions exist.
+- Cross-menu navigation via delegate properties — menus declare what they need, `AuthenticatedMenu` wires it. No circular dependencies.
+- Navigation exceptions for stack unwinding — cleaner than threading a return flag or cancellation token through every method signature.
 - No early returns — single `return` at end of every method; branching via `if/else`.
-
----
-
-## Implementation Steps
-
-1. [x] Create project and install packages
-2. [x] Create entities and models
-3. [x] Create entity configurations (Fluent API)
-4. [x] Create `AppDbContext`
-5. [x] First migration and seed data
-6. [x] `BaseRepository<T>` and `BaseEntityRepository<T>`
-7. [x] Specific repositories
-8. [x] `Response<T>`
-9. [x] Mappers
-10. [x] Services
-11. [x] `Constants`, `Printer`, `Prompter`, `DtoPrompter`, `PaginatedInput`, `ConversationInput`
-12. [x] `BaseMenu`
-13. [x] `UnauthenticatedMenu`, `MainMenu`, `AuthenticatedMenu`
-14. [x] `FriendMenu`
-15. [x] `PostMenu`
-16. [x] `MessageMenu`
-17. [ ] `Bidirectional Menu chaining`
-18. [x] Wire DI in `Program.cs`

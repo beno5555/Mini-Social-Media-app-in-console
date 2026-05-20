@@ -35,4 +35,9 @@ public class BaseEntityRepository<T> : BaseRepository<T> where T : BaseEntity
         return await ExistsAsync(entity => entity.Id == id);
     }
 
+    public void ClearTracker()
+    {
+        _dbContext.ChangeTracker.Clear();
+    }
+
 }

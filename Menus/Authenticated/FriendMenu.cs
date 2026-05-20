@@ -2,6 +2,7 @@
 using social_media_console_app.BusinessLogic.Dtos.UserDtos;
 using social_media_console_app.BusinessLogic.Services;
 using social_media_console_app.Helpers;
+using social_media_console_app.Helpers.Exceptions;
 using social_media_console_app.Menus.Base;
 using social_media_console_app.Models;
 using social_media_console_app.ProjectConstants;
@@ -365,11 +366,8 @@ public class FriendMenu : BaseMenu
             var deleteResponse = await _accountService.DeleteAccountAsync(userToDeleteId);
             if (deleteResponse.Success)
             {
-                _sessionUser.UserId = 0;
-                _sessionUser.Username = string.Empty;
-                
                 Console.WriteLine("Account deleted!");
-                Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
+                throw new AccountDeletedException();
             }
             else
             {
