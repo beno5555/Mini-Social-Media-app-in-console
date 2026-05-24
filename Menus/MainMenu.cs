@@ -6,8 +6,8 @@ namespace social_media_console_app.Menus;
 public class MainMenu
 {
     private readonly UnauthenticatedMenu _unauthenticatedMenu;
-    private readonly AuthenticatedMenu   _authenticatedMenu;
-    private readonly SessionUser         _sessionUser;
+    private readonly AuthenticatedMenu _authenticatedMenu;
+    private readonly SessionUser _sessionUser;
 
     public MainMenu(UnauthenticatedMenu unauthenticatedMenu, AuthenticatedMenu authenticatedMenu, SessionUser sessionUser)
     {
@@ -19,13 +19,13 @@ public class MainMenu
     public async Task Run()
     {
         bool run = true;
-        
+
         while (run)
         {
             if (!_sessionUser.IsLoggedIn)
             {
                 var exit = await _unauthenticatedMenu.Run();
-                
+
                 if (exit)
                 {
                     run = false;

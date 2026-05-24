@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using social_media_console_app;
 using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Mappers;
 using social_media_console_app.BusinessLogic.Services;

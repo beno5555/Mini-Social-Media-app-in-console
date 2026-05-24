@@ -39,7 +39,16 @@ public class MessageMenu : BaseMenu
                 break; 
         }
     }
-    
+
+    public async Task LogUnreadNotification()
+    {
+        var hasUnread = await _messageService.HasUnreadAsync(_sessionUser.UserId);
+        if (hasUnread)
+        {
+            Console.WriteLine("You have unread messages");
+        }
+    }
+
     #region Existing conversations section
 
     private async Task OpenExistingConversationsAsync()
@@ -56,7 +65,7 @@ public class MessageMenu : BaseMenu
             messageIfNoItemsFetched: ConsoleMessages.NoConversationsMessage);
     }
 
-    public async Task OpenConversationAsync(DisplayUserDto otherUser)
+    private async Task OpenConversationAsync(DisplayUserDto otherUser)
     {
         async Task<List<DisplayMessageDto>> FetchMessages(int pageNumber, int pageSize)
         {
@@ -110,7 +119,7 @@ public class MessageMenu : BaseMenu
     #endregion
 
     #region Send a message
-    private async Task SendMessageAsync(DisplayUserDto receiverUser)
+    public async Task SendMessageAsync(DisplayUserDto receiverUser)
     {
         
         var messageDto          = DtoPrompter.Message(_sessionUser.UserId, receiverUser.Id);

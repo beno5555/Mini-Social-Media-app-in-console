@@ -154,7 +154,6 @@ public abstract class BaseEntity
 - `Friendship` does not inherit `BaseEntity` — its PK is `(RequesterId, AddresseeId)`.
 - `FriendshipStatus` is stored as a string in the database.
 - `User.DateOfBirth` is validated via check constraint and at menu level. Age must be between 13 and 130.
-- `Message` uses `SentAt` and `MessageContent` instead of `BaseEntity` naming conventions for domain clarity.
 
 ### FK Cascade Behavior
 

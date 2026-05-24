@@ -4,7 +4,6 @@ using social_media_console_app.BusinessLogic.Services;
 using social_media_console_app.Helpers;
 using social_media_console_app.Helpers.Exceptions;
 using social_media_console_app.Menus.Base;
-using social_media_console_app.Models;
 using social_media_console_app.ProjectConstants;
 using social_media_console_app.ProjectConstants.Enums;
 
@@ -78,15 +77,11 @@ public class FriendMenu : BaseMenu
         async Task<List<DisplayUserDto>> FetchPage(int pageNumber, int pageSize) =>
             await _friendshipService.GetFriendsAsync(_sessionUser.UserId, pageNumber, pageSize);
 
-        // add a back label parameter to an existing method.
-        async Task FriendProfile(DisplayUserDto friend) =>
-            await ViewFriendProfileAsync(friend, "Back to friends list");
-        
         await BrowseAndSelectAsync(
             FetchPage,
             Printer.PrintUserPreview,
             Constants.DefaultPageSize,
-            FriendProfile,
+            ViewUnknownUserProfileAsync,
             sectionTitle: "Friends",
             messageIfNoItemsFetched: ConsoleMessages.NoFriendsMessage);
     }
@@ -104,7 +99,7 @@ public class FriendMenu : BaseMenu
             FetchPage,
             Printer.PrintUserPreview,
             Constants.DefaultPageSize,
-            ViewReceivedProfileAsync,
+            ViewUnknownUserProfileAsync,
             sectionTitle: "Pending Requests",
             messageIfNoItemsFetched: ConsoleMessages.NoPendingRequestsMessage);
     }
@@ -137,7 +132,7 @@ public class FriendMenu : BaseMenu
             FetchPage,
             Printer.PrintUserPreview,
             Constants.DefaultPageSize,
-            ViewSentRequestProfileAsync,
+            ViewUnknownUserProfileAsync,
             sectionTitle: "Sent Requests",
             messageIfNoItemsFetched: ConsoleMessages.NoSentRequestsMessage
         );
@@ -232,95 +227,60 @@ public class FriendMenu : BaseMenu
         }
     }
 
-    private async Task ViewFriendProfileAsync(DisplayUserDto friend, string backLabel = "Back")
+    /// <summary>
+    /// adds specific operations in the profile menu based on the relationship the searched user has with the current user
+    /// </summary>
+    private async Task ConfigureUserProfileOptions(DisplayUserDto userProfile, Dictionary<string, Func<Task>> defaultOptions)
     {
-        var viewFriendProfileOptions = GetDefaultViewProfileOptions(friend);
-        viewFriendProfileOptions.Add("Remove from friends", () => RemoveFriendAsync(friend));
-        await ViewUserProfileAsync(friend, viewFriendProfileOptions, backLabel);
-    }
-    
-    public async Task ViewOwnProfileAsync(DisplayUserDto myself)
-    {
-        var viewOwnProfileOptions = GetDefaultViewProfileOptions(myself);
-        viewOwnProfileOptions.Add("Change/Add bio", () => UpdateBioAsync(myself.Id));
-        viewOwnProfileOptions.Add("Delete account", () => ConfirmDeleteAccountAsync(myself.Id));
-        await ViewUserProfileAsync(myself, viewOwnProfileOptions);
-    }
-
-    private async Task ViewNonFriendProfileAsync(DisplayUserDto nonFriend)
-    {
-        var viewNonFriendProfileOptions = GetDefaultViewProfileOptions(nonFriend);
-        viewNonFriendProfileOptions.Add("Send a friend request", () => SendRequestAsync(nonFriend.Id));
-        await ViewUserProfileAsync(nonFriend, viewNonFriendProfileOptions);
-    }
-
-    private async Task ViewPendingFriendAsync(DisplayUserDto pendingFriend, Friendship relationship)
-    {
-        if (relationship.RequesterUserId == _sessionUser.UserId)
-        {   
-            await ViewSentRequestProfileAsync(pendingFriend);
-        }
-        else
-        {
-            await ViewReceivedProfileAsync(pendingFriend);
-        }
-    }
-
-    private async Task ViewSentRequestProfileAsync(DisplayUserDto sentRequestUser)
-    {
-        var viewSentRequestUserProfileOptions = GetDefaultViewProfileOptions(sentRequestUser);
-        viewSentRequestUserProfileOptions.Add("Cancel a request", () => ManageSentRequestAsync(sentRequestUser.Id));
-        await ViewUserProfileAsync(sentRequestUser, viewSentRequestUserProfileOptions);
-    }
-
-    private async Task ViewReceivedProfileAsync(DisplayUserDto receivedRequestUser)
-    {
-        var viewReceivedProfileOptions = GetDefaultViewProfileOptions(receivedRequestUser);
+        var relationship = await _friendshipService.GetRelationshipAsync(_sessionUser.UserId, userProfile.Id);
         
-        viewReceivedProfileOptions.Add("Accept",  () => RespondToRequestAsync(receivedRequestUser, FriendshipStatus.Accepted));
-        viewReceivedProfileOptions.Add("Decline", () => RespondToRequestAsync(receivedRequestUser, FriendshipStatus.Declined));
-        
-        await ViewUserProfileAsync(receivedRequestUser, viewReceivedProfileOptions);
-    }
-
-    private async Task ViewRejecterProfileAsync(DisplayUserDto rejecterUser)
-    {
-        var viewRejecterProfileOptions = GetDefaultViewProfileOptions(rejecterUser);
-        viewRejecterProfileOptions.Add("Your request has been rejected by this user. Resend a request", () => SendRequestAsync(rejecterUser.Id));
-        await ViewUserProfileAsync(rejecterUser, viewRejecterProfileOptions);
-    }
-
-    private async Task ViewUnknownUserProfileAsync(DisplayUserDto searchedUser)
-    {
-        var relationship = await _friendshipService.GetRelationshipAsync(_sessionUser.UserId, searchedUser.Id);
-
-        if (_sessionUser.UserId == searchedUser.Id)
+        if (_sessionUser.UserId == userProfile.Id)
         {
-            await ViewOwnProfileAsync(searchedUser);
+            defaultOptions.Add("Change/Add bio", () => UpdateBioAsync(userProfile.Id));
+            defaultOptions.Add("Delete account", () => ConfirmDeleteAccountAsync(userProfile.Id));
         }
         else
         {
             if (relationship is null)
             {
-                await ViewNonFriendProfileAsync(searchedUser);
+                defaultOptions.Add("Send a friend request", () => SendRequestAsync(userProfile.Id));
             }
             else if (relationship.FriendshipStatus == FriendshipStatus.Pending)
             {
-                await ViewPendingFriendAsync(searchedUser, relationship);
+                if (relationship.RequesterUserId == _sessionUser.UserId)
+                {   
+                    defaultOptions.Add("Cancel a request", () => ManageSentRequestAsync(userProfile.Id));
+                }
+                else
+                {
+                    defaultOptions.Add("Accept",  () => RespondToRequestAsync(userProfile, FriendshipStatus.Accepted));
+                    defaultOptions.Add("Decline", () => RespondToRequestAsync(userProfile, FriendshipStatus.Declined));
+                }
             }
             else if (relationship.FriendshipStatus == FriendshipStatus.Accepted)
             {
-                await ViewFriendProfileAsync(searchedUser);
+                defaultOptions.Add("Remove from friends", () => RemoveFriendAsync(userProfile));
+                defaultOptions.Add("Message", () => OnOpenConversation!(userProfile));
             }
             else
             {
-                await ViewRejecterProfileAsync(searchedUser);
+                defaultOptions.Add("Your request has been rejected by this user. Resend a request", () => SendRequestAsync(userProfile.Id));
             }
         }
     }
+
+    /// <summary>
+    /// utilizes configure method to determine what operations current user can perform in the profile menu and passes those options alongside the user itself to a printer method.
+    /// </summary>
+    private async Task ViewUnknownUserProfileAsync(DisplayUserDto searchedUser)
+    {
+        var userProfileOptions = GetDefaultViewProfileOptions(searchedUser);
+        await ConfigureUserProfileOptions(searchedUser, userProfileOptions);
+        await ViewUserProfileAsync(searchedUser, userProfileOptions);
+    }
     
     /// <summary>
-    /// public wrapper for other menus
+    /// public view profile wrapper for other menus
     /// </summary>
     public async Task ViewProfileAsync(string username)
     {
@@ -338,7 +298,6 @@ public class FriendMenu : BaseMenu
 
     #endregion
     
-    
     private async Task SendRequestAsync(int addresseeId)
     {
         var requestResponse = await _friendshipService.SendRequest(_sessionUser.UserId, addresseeId);
@@ -351,7 +310,6 @@ public class FriendMenu : BaseMenu
         {
             Console.WriteLine("Failed to send a friend request. " + requestResponse.Message);
         }
-        
     }
 
     private async Task ConfirmDeleteAccountAsync(int userToDeleteId)

@@ -135,4 +135,8 @@ public class MessageService
         return response;
     }
 
+    public async Task<bool> HasConversation(int userAId, int userBId)
+    {
+        return await _messageRepository.HaveMessages(userAId, userBId);
+    }
 }

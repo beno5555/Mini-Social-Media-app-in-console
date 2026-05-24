@@ -84,4 +84,10 @@ public class MessageRepository : BaseEntityRepository<Message>
     {
         return await ExistsAsync(message => message.ReceiverUserId == userId && !message.IsRead);
     }
+
+    public async Task<bool> HaveMessages(int userAId, int userBId)
+    {
+        return await ExistsAsync(message => (message.SenderUserId == userAId && message.ReceiverUserId == userBId) ||
+                                            (message.SenderUserId == userBId && message.ReceiverUserId == userAId));
+    }
 }

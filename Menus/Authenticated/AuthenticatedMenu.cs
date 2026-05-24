@@ -11,10 +11,6 @@ public class AuthenticatedMenu : BaseMenu
     private readonly FriendMenu  _friendMenu;
     private readonly MessageMenu _messageMenu;
 
-    // use this service to check if the user has any unread messages right after login
-    private readonly MessageService _messageService;
-    private readonly AccountService _accountService;
-
     protected override string Title     => $"Welcome, {_sessionUser.Username}!";
     protected override string BackLabel => "Log Out";
 
@@ -31,21 +27,17 @@ public class AuthenticatedMenu : BaseMenu
         SessionUser sessionUser,
         PostMenu postMenu,
         FriendMenu friendMenu,
-        MessageMenu messageMenu,
-        MessageService messageService,
-        AccountService accountService) : base (sessionUser)
+        MessageMenu messageMenu) : base (sessionUser)
     {
         _postMenu = postMenu;
         _friendMenu = friendMenu;
         _messageMenu = messageMenu;
 
         // check for unread messages
-        _messageService = messageService;
-        _accountService = accountService;
         
         // menu bridging
         _friendMenu.OnViewUserPosts = userId => _postMenu.ViewUserPostsAsync(userId);
-        _friendMenu.OnOpenConversation = otherUser => _messageMenu.OpenConversationAsync(otherUser);
+        _friendMenu.OnOpenConversation = otherUser => _messageMenu.SendMessageAsync(otherUser);
 
         _postMenu.OnViewUserProfile = userId => _friendMenu.ViewProfileAsync(userId);
         
@@ -98,12 +90,7 @@ public class AuthenticatedMenu : BaseMenu
     protected override async Task OnEnter(string? currentMenuMessage = null)
     {
         await base.OnEnter(currentMenuMessage);
-
-        var hasUnread = await _messageService.HasUnreadAsync(_sessionUser.UserId);
-        if (hasUnread)
-        {
-            Console.WriteLine("You have unread messages");
-        }
+        await _messageMenu.LogUnreadNotification();
     }
 
     protected override void OnBack()
@@ -126,15 +113,6 @@ public class AuthenticatedMenu : BaseMenu
 
     private async Task ViewProfile()
     {
-        var userResponse = await _accountService.GetByUsername(_sessionUser.Username);
-
-        if (userResponse.Success)
-        {
-            await _friendMenu.ViewOwnProfileAsync(userResponse.Data!);
-        }
-        else
-        {
-            Console.WriteLine("Could not fetch profile");
-        }
+        await _friendMenu.ViewProfileAsync(_sessionUser.Username);
     }
 }
