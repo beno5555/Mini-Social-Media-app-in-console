@@ -46,7 +46,7 @@ public class PostMenu : BaseMenu
                 await ViewOwnPostsAsync();
                 break;
             default:
-                Console.WriteLine("Something went wrong.");
+                Printer.PrintError("Something went wrong.");
                 break;
         }
     }
@@ -120,11 +120,11 @@ public class PostMenu : BaseMenu
             var response = await _commentService.DeleteCommentAsync(commentId);
             if (response.Success)
             {
-                Console.WriteLine("Comment deleted");
+                Printer.PrintSuccess(   "Comment deleted");
             }
             else
             {
-                Console.WriteLine("Could not delete comment. " + response.Message);
+                Printer.PrintError("Could not delete comment. " + response.Message);
             }
         });
     }
@@ -135,11 +135,11 @@ public class PostMenu : BaseMenu
         var response = await _commentService.AddCommentAsync(createCommentDto);
         if (response.Success)
         {
-            Console.WriteLine("Comment uploaded");
+            Printer.PrintSuccess("Comment uploaded");
         }
         else
         {
-            Console.WriteLine("Failed to upload a comment. " + response.Message);
+            Printer.PrintError("Failed to upload a comment. " + response.Message);
         }
         
     }
@@ -152,11 +152,11 @@ public class PostMenu : BaseMenu
             
             if (response.Success)
             {
-                Console.WriteLine("Post deleted");
+                Printer.PrintSuccess("Post deleted");
             }
             else
             {
-                Console.WriteLine("Could not delete post. " + response.Message);
+                Printer.PrintError("Could not delete post. " + response.Message);
             }
         });
     }
@@ -172,11 +172,11 @@ public class PostMenu : BaseMenu
 
         if (response.Success)
         {
-            Console.WriteLine("Post uploaded!");
+            Printer.PrintSuccess("Post uploaded!");
         }
         else
         {
-            Console.WriteLine("Upload failed. " + response.Message);
+            Printer.PrintError("Upload failed. " + response.Message);
         }
     }
     
@@ -205,7 +205,7 @@ public class PostMenu : BaseMenu
 
     #region View a post
 
-    public async Task ViewPostAsync(DisplayPostDto post)
+    private async Task ViewPostAsync(DisplayPostDto post)
     {
         Printer.PrintPostDetails(post);
         Console.WriteLine();
@@ -259,7 +259,7 @@ public class PostMenu : BaseMenu
         }
         else
         {
-            Console.WriteLine("Failed to fetch posts. " + fetchInAdvance.Message);
+            Printer.PrintError("Failed to fetch posts. " + fetchInAdvance.Message);
         }
     }
 }

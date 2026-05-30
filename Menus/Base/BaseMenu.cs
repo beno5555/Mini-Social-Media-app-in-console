@@ -37,7 +37,7 @@ public abstract class BaseMenu
     {
         ClearConsole();
         string title = currentMenuMessage ?? Title;
-        Console.WriteLine($"--- {title} ---");
+        Printer.PrintHeader(title);
         
         return Task.CompletedTask;
     }
@@ -63,7 +63,7 @@ public abstract class BaseMenu
         while (run)
         {
             await OnEnter(sectionTitle);
-            Console.WriteLine($"Page - {currentPage}");
+            Printer.PrintPage(currentPage);
             
             if (!cache.TryGetValue(currentPage, out var items))
             {
@@ -126,7 +126,7 @@ public abstract class BaseMenu
             }
         } while (selectedItem is not null);
 
-        Console.WriteLine("Routing back...");
+        Printer.PrintInfo("Routing back...");
         Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
     }
     protected async Task ConfirmAction(string prompt, Func<Task> action)

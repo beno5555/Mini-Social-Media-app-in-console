@@ -25,7 +25,7 @@ public static class Prompter
                 validation = result.ProcessValidation(true, min, max);
                 if (!validation.Success)
                 {
-                    Console.WriteLine(validation.Message);
+                    Printer.PrintError(validation.Message);
                 }
             }
             else if (input is not null && input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
@@ -34,7 +34,7 @@ public static class Prompter
             }
             else
             {
-                Console.WriteLine("Input format was invalid");
+                Printer.PrintError("Input format was invalid");
             }
         } while (!validation.Success);
 
@@ -61,7 +61,7 @@ public static class Prompter
 
             if (string.IsNullOrEmpty(input))
             {
-                Console.WriteLine("Input cannot be empty");
+                Printer.PrintError("Input cannot be empty");
             }
             else if (int.TryParse(input, out int index))
             {
@@ -74,7 +74,7 @@ public static class Prompter
                     return PaginatedInput.BackToMenu();
                 }
                    
-                Console.WriteLine($"Input during selection should be in range: (0-{itemCount})");
+                Printer.PrintError($"Input during selection should be in range: (0-{itemCount})");
             }
             else if (input.Equals("p") && hasPrevious)
             {
@@ -128,7 +128,7 @@ public static class Prompter
                 case Constants.HomeKey:
                     throw new NavigateToMainMenuException();
                 default:
-                    Console.WriteLine("invalid input");
+                    Printer.PrintError("invalid input");
                     break;
             }
         } while (true);
@@ -146,7 +146,7 @@ public static class Prompter
             
             if (string.IsNullOrEmpty(input))
             {
-                Console.WriteLine("Input cannot be empty");
+                Printer.PrintError("Input cannot be empty");
             }
             else if (input.Equals(Constants.HomeCommand, StringComparison.OrdinalIgnoreCase))
             {
@@ -154,15 +154,15 @@ public static class Prompter
             }
             else if (input.Length < min)
             {
-                Console.WriteLine("Input cannot contain less than " + min + " characters");
+                Printer.PrintError("Input cannot contain less than " + min + " characters");
             }
             else if (input.Length > max)
             {
-                Console.WriteLine("Input cannot contain more than " + max + " characters");
+                Printer.PrintError("Input cannot contain more than " + max + " characters");
             }
             else if (regexPattern is not null && !Regex.IsMatch(input, regexPattern))
             {
-                Console.WriteLine("Invalid format");
+                Printer.PrintError("Invalid format");
             }
             else
             {
@@ -192,15 +192,15 @@ public static class Prompter
             
             if (input.Length < min)
             {
-                Console.WriteLine("Input cannot contain less than " + min + " characters");
+                Printer.PrintError("Input cannot contain less than " + min + " characters");
             }
             else if (input.Length > max)
             {
-                Console.WriteLine("Input cannot contain more than " + max + " characters");
+                Printer.PrintError("Input cannot contain more than " + max + " characters");
             }
             else if (regexPattern is not null && !Regex.IsMatch(input, regexPattern))
             {
-                Console.WriteLine("Invalid format");
+                Printer.PrintError("Invalid format");
             }
             else
             {
@@ -233,11 +233,11 @@ public static class Prompter
             {
                 if (date > maxDate)
                 {
-                    Console.WriteLine($"You must be at least {minAge} years old.");
+                    Printer.PrintError($"You must be at least {minAge} years old.");
                 }
                 else if (date < minDate)
                 {
-                    Console.WriteLine($"You cannot be older than {maxAge} years old.");
+                    Printer.PrintError($"You cannot be older than {maxAge} years old.");
                 }
                 else
                 {
@@ -250,7 +250,7 @@ public static class Prompter
             }
             else
             {
-                Console.WriteLine("Invalid format. Use yyyy-MM-dd.");
+                Printer.PrintError("Invalid format. Use yyyy-MM-dd.");
             }
         } while (!result.HasValue);
 

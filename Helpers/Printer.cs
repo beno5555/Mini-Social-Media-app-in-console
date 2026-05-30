@@ -1,5 +1,4 @@
-﻿using System.Runtime.Versioning;
-using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
+﻿using social_media_console_app.BusinessLogic.Dtos.CommentDtos;
 using social_media_console_app.BusinessLogic.Dtos.MessageDtos;
 using social_media_console_app.BusinessLogic.Dtos.PostDtos;
 using social_media_console_app.BusinessLogic.Dtos.UserDtos;
@@ -13,7 +12,10 @@ public static class Printer
 
     public static void PrintUserPreview(DisplayUserDto user, int index)
     {
-        PrintLine(index, user.Username);
+        PrintIndexPrefix(index);
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(user.Username);
+        Console.ResetColor();
     }
 
     public static void PrintPostPreview(DisplayPostDto post, int index)
@@ -21,7 +23,15 @@ public static class Printer
         string contentPreview = post.Content.Length > Constants.PostContentPreviewLength
             ? post.Content[..Constants.PostContentPreviewLength] + "..."
             : post.Content;
-        PrintLine(index, $"{post.Title} - {contentPreview}");
+        
+        PrintIndexPrefix(index);
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write(post.Title);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write(" - ");
+        Console.Write(contentPreview);
+        Console.ResetColor();
+        Console.WriteLine();
     }
 
     public static void PrintCommentPreview(DisplayCommentDto comment, int index)
@@ -29,8 +39,18 @@ public static class Printer
         string commentContent = comment.Content.Length > Constants.CommentContentPreviewLength
             ? comment.Content[..Constants.CommentContentPreviewLength] + "..."
             : comment.Content;
-        string commentBody = $"{comment.SenderUsername}: '{commentContent}'";
-        PrintLine(index, commentBody);
+        
+        PrintIndexPrefix(index);
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write(comment.SenderUsername);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write(": '");
+        Console.ResetColor();
+        Console.Write(commentContent);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write("'");
+        Console.ResetColor();
+        Console.WriteLine();
     }
 
     #endregion
@@ -39,26 +59,91 @@ public static class Printer
 
     public static void PrintUserDetails(DisplayUserDto user)
     {
-        Console.WriteLine($"\nUsername: {user.Username}");
-        Console.WriteLine($"Bio: {(string.IsNullOrEmpty(user.Bio) ? "No bio" : user.Bio)}");
-        Console.WriteLine($"Birthday: {user.DateOfBirth:yyyy-MM-dd}");
-        Console.WriteLine($"Joined: {user.CreatedAt:yyyy-MM-dd}");
+        Console.WriteLine();
+        PrintDetailLine("Username", user.Username);
+        PrintDetailLine("Bio",      string.IsNullOrEmpty(user.Bio) ? "No bio" : user.Bio);
+        PrintDetailLine("Birthday", user.DateOfBirth.ToString("yyyy-MM-dd"));
+        PrintDetailLine("Joined",   user.CreatedAt.ToString("yyyy-MM-dd"));
 
     }
 
     public static void PrintPostDetails(DisplayPostDto post)
     {
-        Console.WriteLine($"\nUploaded by: {post.AuthorUsername} at {post.UploadedAt:yyyy-MM-dd}");
-        Console.WriteLine($"Title: {post.Title}");
-        Console.WriteLine($"Content: {post.Content}");
+        Console.WriteLine();
+        
+        PrintDetailLine("Uploaded by", $"{post.AuthorUsername} at {post.UploadedAt:yyyy-MM-dd}");
+        PrintDetailLine("Title",   post.Title);
+        PrintDetailLine("Content", post.Content);
     }
 
     public static void PrintCommentDetails(DisplayCommentDto comment)
     {
-        Console.WriteLine($"\nUploaded by: {comment.SenderUsername} at {comment.SentAt:yyyy-MM-dd}");
-        Console.WriteLine($"Content: {comment.Content}");
+        Console.WriteLine();
+        
+        PrintDetailLine("Uploaded by", $"{comment.SenderUsername} at {comment.SentAt:yyyy-MM-dd}");
+        PrintDetailLine("Content", comment.Content);
     }
 
+    #endregion
+    
+    #region Menu
+    public static void PrintSuccess(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine(message);
+        Console.ResetColor();
+    }
+ 
+    public static void PrintError(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine(message);
+        Console.ResetColor();
+    }
+ 
+    public static void PrintInfo(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(message);
+        Console.ResetColor();
+    }
+
+    public static void PrintWarning(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine(message);
+        Console.ResetColor();
+    }
+    
+    public static void PrintPage(int currentPage)
+    {
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine($"Page - {currentPage}");
+        Console.ResetColor();
+        Console.WriteLine();
+    }
+ 
+    // ── Title header ──────────────────────────────────────────────────────────
+ 
+    public static void PrintHeader(string title)
+    {
+        int    width  = Math.Max(title.Length + 4, 36);
+        string top    = "╔" + new string('═', width) + "╗";
+        string bottom = "╚" + new string('═', width) + "╝";
+        string padded = title.PadLeft((width + title.Length) / 2).PadRight(width);
+        string middle = "║" + padded + "║";
+ 
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(top);
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.WriteLine(middle);
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(bottom);
+        Console.ResetColor();
+        Console.WriteLine();
+    }
+
+    
     #endregion
 
     #region ConsoleMessages
@@ -190,13 +275,17 @@ public static class Printer
 
     public static void PrintLine(int index, string content)
     {
-        string indexTxt = index > 0 ? $"{index}. " : string.Empty;
-        Console.WriteLine($"{indexTxt}{content}");
+        PrintIndexPrefix(index);
+        Console.WriteLine(content);
     }
 
     public static void PrintLine(string message, int index)
     {
-        Console.WriteLine(index + ". " + message);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write($"{index}. ");
+        
+        Console.ResetColor();
+        Console.WriteLine(message);
     }
 
     #endregion
@@ -254,10 +343,27 @@ public static class Printer
 
     public static void PrintInputHints(Dictionary<ConsoleKey, string> hints)
     {
-        var    hintsFormat = hints.Select(kvp => $"{GetKeyName(kvp.Key)} -> {kvp.Value}");
-        string text        = string.Join(" | ", hintsFormat);
+        bool first = true;
+        foreach (var kvp in hints)
+        {
+            if (!first)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write(" | ");
+                Console.ResetColor();
+            }
 
-        Console.WriteLine(text);
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write(GetKeyName(kvp.Key));
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" -> ");
+            Console.ResetColor();
+            Console.Write(kvp.Value);
+            first = false;
+        }
+
+
+        Console.WriteLine();
     }
 
     private static string GetKeyName(ConsoleKey key)
@@ -273,6 +379,30 @@ public static class Printer
     }
 
     #endregion
+    
+    #region Private Helpers
+
+    private static void PrintDetailLine(string label, string value)
+    {
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        
+        Console.Write($"{label}: ");
+        
+        Console.ResetColor();
+        Console.WriteLine(value);
+    }
+    private static void PrintIndexPrefix(int index)
+    {
+        if (index > 0)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"{index}. ");
+            Console.ResetColor();
+        }
+    }
+    
+    #endregion
 
     #endregion
+
 }

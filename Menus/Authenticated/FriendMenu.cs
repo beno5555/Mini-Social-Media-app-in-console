@@ -65,7 +65,7 @@ public class FriendMenu : BaseMenu
                 await RemoveFriendAsync();
                 break;
             default:
-                Console.WriteLine("Invalid input");
+                Printer.PrintError("Invalid input");
                 break;
         }
     }
@@ -111,11 +111,11 @@ public class FriendMenu : BaseMenu
         if (responseResponse.Success)
         {
             string action = newStatus == FriendshipStatus.Accepted ? "Accepted" : "Declined";
-            Console.WriteLine($"{action} a request from '{requesterUser.Username}'.");
+            Printer.PrintSuccess($"{action} a request from '{requesterUser.Username}'.");
         }
         else
         {
-            Console.WriteLine("Response failed. " + responseResponse.Message);
+            Printer.PrintError("Response failed. " + responseResponse.Message);
         }
     }
     
@@ -144,11 +144,11 @@ public class FriendMenu : BaseMenu
         
         if (cancelRequestResponse.Success)
         {
-            Console.WriteLine("Request cancelled");
+            Printer.PrintSuccess("Request cancelled");
         }
         else
         {
-            Console.WriteLine("Failed to cancel a request. " + cancelRequestResponse.Message);
+            Printer.PrintError("Failed to cancel a request. " + cancelRequestResponse.Message);
         }
         
     }
@@ -195,11 +195,11 @@ public class FriendMenu : BaseMenu
         {
             var deleteResponse = await _friendshipService.RemoveRelationshipAsync(_sessionUser.UserId, friend.Id); if (deleteResponse.Success)
             {
-                Console.WriteLine($"You and {friend.Username} are no longer friends :(");
+                Printer.PrintSuccess($"You and {friend.Username} are no longer friends :(");
             }
             else
             {
-                Console.WriteLine("Could not delete user from friends list. " + deleteResponse.Message);
+                Printer.PrintError("Could not delete user from friends list. " + deleteResponse.Message);
             }
         });
     }
@@ -292,7 +292,7 @@ public class FriendMenu : BaseMenu
         }
         else
         {
-            Console.WriteLine("User not found");
+            Printer.PrintError("User not found");
         }
     }
 
@@ -304,11 +304,11 @@ public class FriendMenu : BaseMenu
 
         if (requestResponse.Success)
         {
-            Console.WriteLine("Friend request sent!");
+            Printer.PrintSuccess("Friend request sent!");
         }
         else
         {
-            Console.WriteLine("Failed to send a friend request. " + requestResponse.Message);
+            Printer.PrintError("Failed to send a friend request. " + requestResponse.Message);
         }
     }
 
@@ -324,17 +324,17 @@ public class FriendMenu : BaseMenu
             var deleteResponse = await _accountService.DeleteAccountAsync(userToDeleteId);
             if (deleteResponse.Success)
             {
-                Console.WriteLine("Account deleted!");
+                Printer.PrintSuccess("Account deleted!");
                 throw new AccountDeletedException();
             }
             else
             {
-                Console.WriteLine("Could not delete an account. " +  deleteResponse.Message);
+                Printer.PrintError("Could not delete an account. " +  deleteResponse.Message);
             }
         }
         else
         {
-            Console.WriteLine("You can only delete your own account");
+            Printer.PrintError("You can only delete your own account");
         }
     }
 
@@ -345,11 +345,11 @@ public class FriendMenu : BaseMenu
         
         if (response.Success)
         {
-            Console.WriteLine("Bio Updated!");
+            Printer.PrintSuccess("Bio Updated!");
         }
         else
         {
-            Console.WriteLine("Could not update bio. " +   response.Message);
+            Printer.PrintError("Could not update bio. " +   response.Message);
         }
     }
 }

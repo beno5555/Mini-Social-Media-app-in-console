@@ -45,7 +45,7 @@ public class MessageMenu : BaseMenu
         var hasUnread = await _messageService.HasUnreadAsync(_sessionUser.UserId);
         if (hasUnread)
         {
-            Console.WriteLine("You have unread messages");
+            Printer.PrintWarning("You have unread messages");
         }
     }
 
@@ -78,7 +78,7 @@ public class MessageMenu : BaseMenu
             }
             else
             {
-                Console.WriteLine("Something went wrong. " + conversationResponse.Message);
+                Printer.PrintError("Something went wrong. " + conversationResponse.Message);
             }
 
             return messages;
@@ -127,11 +127,11 @@ public class MessageMenu : BaseMenu
 
         if (sendMessageResponse.Success)
         {
-            Console.WriteLine("Sent a message!");
+            Printer.PrintSuccess("Sent a message!");
         }
         else
         {
-            Console.WriteLine("Something went wrong. " + sendMessageResponse.Message);
+            Printer.PrintError("Something went wrong. " + sendMessageResponse.Message);
         }
     }
     #endregion
@@ -166,7 +166,7 @@ public class MessageMenu : BaseMenu
             if (messages.Count > 0)
             {
                 await OnEnter(sectionTitle);
-                Console.WriteLine($"Page - {currentPage}");
+                Printer.PrintPage(currentPage);
                 
                 Printer.PrintChatBorder();
                 (previousUsername, previousDate) = Printer.PrintMessages(

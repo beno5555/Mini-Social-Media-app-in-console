@@ -1,5 +1,6 @@
 ﻿using social_media_console_app.BusinessLogic.Dtos;
 using social_media_console_app.BusinessLogic.Services;
+using social_media_console_app.Helpers;
 using social_media_console_app.Helpers.Exceptions;
 using social_media_console_app.Menus.Base;
 
@@ -82,7 +83,7 @@ public class AuthenticatedMenu : BaseMenu
                 await ViewProfile();
                 break;
             default:
-                Console.WriteLine("Something went wrong");
+                Printer.PrintError("Something went wrong");
                 break;
         }
     }
@@ -101,7 +102,7 @@ public class AuthenticatedMenu : BaseMenu
     private void LogOut()
     {
         ClearSession();
-        Console.WriteLine("Logging out...");
+        Printer.PrintInfo("Logging out...");
         Thread.Sleep(ProjectConstants.Constants.MenuBackTrackDelayInMilliseconds);
     }
 

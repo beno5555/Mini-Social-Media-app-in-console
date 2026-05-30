@@ -15,7 +15,7 @@ public class UnauthenticatedMenu : BaseMenu
         _authService = authService;
     }
 
-    protected override string Title     => "Social Media Console App";
+    protected override string Title     => "SESSION";
     protected override string BackLabel => "Exit";
 
     protected override List<string> MenuOptions { get; } =
@@ -38,7 +38,7 @@ public class UnauthenticatedMenu : BaseMenu
 
             if (choice == ExitRoute)
             {
-                Console.WriteLine("Exiting..");
+                Printer.PrintWarning("Exiting...");
                 Thread.Sleep(Constants.MenuBackTrackDelayInMilliseconds);
                 _exitOnBack = true;
                 run = false;
@@ -52,7 +52,7 @@ public class UnauthenticatedMenu : BaseMenu
                     run = false;
                 }
                 
-                Console.WriteLine("Press any key to reset menu..");
+                Printer.PrintInfo("Press any key to reset menu..");
                 Console.ReadKey();
             }
 
@@ -71,7 +71,7 @@ public class UnauthenticatedMenu : BaseMenu
                 await Login();
                 break;
             default:
-                Console.WriteLine("Invalid option");
+                Printer.PrintError("Invalid option");
                 break;
         }
     }
@@ -80,28 +80,35 @@ public class UnauthenticatedMenu : BaseMenu
     {
         var registerDto = DtoPrompter.Register();
 
-        Console.WriteLine("Registering...");
+        Printer.PrintInfo("Registering...");
         var response    = await _authService.RegisterAsync(registerDto);
-        
-        Console.WriteLine(response.Success ? "Registration Successful" : $"Registration failed. {response.Message}");
+
+        if (response.Success)
+        {
+            Printer.PrintSuccess("Registration successful. You can now log in.");
+        }
+        else
+        {
+            Printer.PrintError("Registration failed. " + response.Message);
+        }
     }
 
     private async Task Login()
     {
         var loginDto = DtoPrompter.Login();
 
-        Console.WriteLine("Validating Credentials...");
+        Printer.PrintInfo("Validating Credentials...");
         var response = await _authService.LoginAsync(loginDto);
         
         if (response.Success)
         {
             _sessionUser.UserId = response.Data!.UserId;
             _sessionUser.Username = response.Data!.Username;
-            Console.WriteLine("Login Successful");
+            Printer.PrintSuccess("Login successful");
         }
         else
         {
-            Console.WriteLine("Login Failed. " + response.Message);
+            Printer.PrintError("Login Failed. " + response.Message);
         }
     }
 

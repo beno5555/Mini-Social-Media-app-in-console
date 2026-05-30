@@ -37,7 +37,6 @@ public class AccountService
             if (userToDelete is not null)
             {
                 await _userRepository.DeleteAsync(userToDelete);
-                Console.WriteLine("deleted user");
             }
             else
             {
